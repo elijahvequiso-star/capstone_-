@@ -59,7 +59,7 @@ const Login = () => {
                 </option>
                 <option value="admin">Mason</option>
                 <option value="admin">Electrician</option>
-                <option value="employee">Team Member</option>
+                <option value="employee">Team Members</option>
               </select>
               {/* Custom dropdown arrow */}
               <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">

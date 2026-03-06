@@ -10,50 +10,134 @@ const Login = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    // Add real auth logic here later
     navigate("/dashboard");
   };
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen overflow-hidden bg-gray-950">
+      {/* Background with refined overlay */}
       <div className="absolute inset-0">
-        <img src={heroImg} alt="Construction site" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-foreground/60" />
+        <img
+          src={heroImg}
+          alt="Modern construction skyline at dusk"
+          className="h-full w-full object-cover opacity-85 scale-105 transition-transform duration-[20s]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/70 to-black/80 backdrop-blur-[2px]" />
       </div>
+
       <PublicNavbar />
 
-      <div className="relative flex min-h-screen items-center justify-center px-4 pt-20">
-        <div className="w-full max-w-md animate-fade-in overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-orange-dark p-8 shadow-2xl">
-          <h2 className="mb-6 text-center font-heading text-3xl font-bold text-primary-foreground">Log In</h2>
-          <form className="space-y-4" onSubmit={handleLogin}>
-            <select className="w-full rounded-lg border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-3 text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary-foreground/40">
-              <option value="" className="text-foreground">Select Role</option>
-              <option value="admin" className="text-foreground">Admin</option>
-              <option value="employee" className="text-foreground">Employee</option>
-            </select>
+      {/* Login Card – centered with glass effect */}
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-5 py-20 sm:px-6">
+        <div
+          className={`
+            w-full max-w-md transform transition-all duration-700
+            rounded-3xl bg-gray-900/40 backdrop-blur-xl border border-gray-700/50
+            shadow-2xl shadow-black/50 p-8 sm:p-10
+            animate-fade-in-up
+          `}
+        >
+          <h2 className="mb-8 text-center font-heading text-4xl font-extrabold tracking-tight text-white">
+            Welcome Back
+          </h2>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            {/* Role Selector – styled like input */}
+            <div className="relative">
+              <select
+                defaultValue=""
+                className={`
+                  w-full appearance-none rounded-xl border border-gray-600/50 
+                  bg-gray-800/40 px-5 py-4 text-white placeholder:text-gray-400
+                  focus:border-amber-600/70 focus:ring-2 focus:ring-amber-500/30
+                  transition-all duration-300 outline-none
+                `}
+              >
+                <option value="" disabled className="text-gray-500">
+                  Select your role
+                </option>
+                <option value="admin">Administrator</option>
+                <option value="employee">Team Member</option>
+              </select>
+              {/* Custom dropdown arrow */}
+              <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Username / Email */}
             <input
               type="text"
-              placeholder="Username"
-              className="w-full rounded-lg border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-3 text-primary-foreground placeholder:text-primary-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary-foreground/40"
+              placeholder="Username or Email"
+              className={`
+                w-full rounded-xl border border-gray-600/50 bg-gray-800/40 
+                px-5 py-4 text-white placeholder:text-gray-400
+                focus:border-amber-600/70 focus:ring-2 focus:ring-amber-500/30
+                transition-all duration-300 outline-none
+              `}
             />
+
+            {/* Password with toggle */}
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
-                className="w-full rounded-lg border border-primary-foreground/20 bg-primary-foreground/10 px-4 py-3 text-primary-foreground placeholder:text-primary-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary-foreground/40"
+                className={`
+                  w-full rounded-xl border border-gray-600/50 bg-gray-800/40 
+                  px-5 py-4 text-white placeholder:text-gray-400 pr-12
+                  focus:border-amber-600/70 focus:ring-2 focus:ring-amber-500/30
+                  transition-all duration-300 outline-none
+                `}
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-foreground/60">
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-amber-400 transition-colors duration-200"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-            <button type="submit" className="w-full rounded-lg bg-primary-foreground py-3 font-heading font-bold text-primary shadow-md transition-all hover:scale-[1.02]">
-              Log In
+
+            {/* Submit Button – gradient + lift */}
+            <button
+              type="submit"
+              className={`
+                w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 
+                py-4 font-heading font-semibold text-white text-lg
+                shadow-lg shadow-amber-900/30 hover:shadow-amber-900/50
+                hover:from-amber-500 hover:to-amber-600
+                transform hover:scale-[1.02] active:scale-[0.98]
+                transition-all duration-300
+              `}
+            >
+              Sign In
             </button>
           </form>
-          <p className="mt-4 text-center text-sm text-primary-foreground/80">
-            Don't have an account?{" "}
-            <Link to="/signup" className="font-semibold text-primary-foreground underline">Sign Up</Link>
-          </p>
+
+          {/* Links */}
+          <div className="mt-8 text-center text-sm text-gray-400 space-y-3">
+            <Link
+              to="/forgot-password" // Add this route if needed
+              className="block hover:text-amber-400 transition-colors"
+            >
+              Forgot password?
+            </Link>
+            <p>
+              Don't have an account?{" "}
+              <Link to="/signup" className="font-medium text-amber-400 hover:text-amber-300 transition-colors">
+                Create account
+              </Link>
+            </p>
+          </div>
         </div>
+      </div>
+
+      {/* Optional subtle CTA / branding at bottom */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center text-gray-500 text-sm pointer-events-none">
+        VEQUISO • Building Excellence
       </div>
     </div>
   );

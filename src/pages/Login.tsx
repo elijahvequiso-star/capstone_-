@@ -57,7 +57,8 @@ const Login = () => {
                 <option value="" disabled className="text-gray-500">
                   Select your role
                 </option>
-                <option value="admin">Administrator</option>
+                <option value="admin">Mason</option>
+                <option value="admin">Electrician</option>
                 <option value="employee">Team Member</option>
               </select>
               {/* Custom dropdown arrow */}

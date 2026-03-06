@@ -2,11 +2,11 @@ import { Printer } from "lucide-react";
 import { useState } from "react";
 
 const salaryData = [
-  { id: 1, name: "Juan Dela Cruz", position: "Site Engineer", basic: 45000, deductions: 5000 },
-  { id: 2, name: "Maria Santos", position: "Project Manager", basic: 55000, deductions: 6500 },
-  { id: 3, name: "Pedro Reyes", position: "Foreman", basic: 35000, deductions: 4000 },
-  { id: 4, name: "Ana Garcia", position: "HR Manager", basic: 50000, deductions: 5500 },
-  { id: 5, name: "Carlos Lopez", position: "Safety Officer", basic: 40000, deductions: 4500 },
+  { id: 1, name: "Prince Elijah Vequiso", position: "Site Engineer", basic: 45000, deductions: 5000 },
+  { id: 2, name: "Joshua Tahanlangit", position: "Project Manager", basic: 55000, deductions: 6500 },
+  { id: 3, name: "Clyde Tan", position: "Foreman", basic: 35000, deductions: 4000 },
+  { id: 4, name: "Mea Pearl", position: "HR Manager", basic: 50000, deductions: 5500 },
+  { id: 5, name: "Rhigo Villahermosa", position: "Safety Officer", basic: 40000, deductions: 4500 },
 ];
 
 const Salary = () => {

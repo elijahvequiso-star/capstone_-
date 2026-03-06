@@ -1,11 +1,11 @@
 import { Check, X } from "lucide-react";
 
 const requests = [
-  { id: 1, employee: "Juan Dela Cruz", type: "Equipment", date: "2026-02-28", status: "Pending" },
-  { id: 2, employee: "Maria Santos", type: "Material", date: "2026-02-27", status: "Approved" },
-  { id: 3, employee: "Pedro Reyes", type: "Leave", date: "2026-02-26", status: "Pending" },
-  { id: 4, employee: "Ana Garcia", type: "Budget", date: "2026-02-25", status: "Rejected" },
-  { id: 5, employee: "Carlos Lopez", type: "Equipment", date: "2026-02-24", status: "Pending" },
+  { id: 1, employee: "Prince Elijah Vequiso", type: "Equipment", date: "2026-02-28", status: "Pending" },
+  { id: 2, employee: "Joshua Tahanlangit", type: "Material", date: "2026-02-27", status: "Approved" },
+  { id: 3, employee: "Clyde Tan", type: "Leave", date: "2026-02-26", status: "Pending" },
+  { id: 4, employee: "Rhigo Villahermosa", type: "Budget", date: "2026-02-25", status: "Rejected" },
+  { id: 5, employee: "Jenny Fernandez", type: "Equipment", date: "2026-02-24", status: "Pending" },
 ];
 
 const Requests = () => {

@@ -1,12 +1,12 @@
 import { Edit, Trash2 } from "lucide-react";
 
 const employees = [
-  { id: 1, name: "Juan Dela Cruz", position: "Site Engineer", department: "Engineering", status: "Active" },
-  { id: 2, name: "Maria Santos", position: "Project Manager", department: "Operations", status: "Active" },
-  { id: 3, name: "Pedro Reyes", position: "Foreman", department: "Construction", status: "Inactive" },
-  { id: 4, name: "Ana Garcia", position: "HR Manager", department: "Admin", status: "Active" },
-  { id: 5, name: "Carlos Lopez", position: "Safety Officer", department: "Operations", status: "Active" },
-  { id: 6, name: "Rosa Martinez", position: "Architect", department: "Engineering", status: "Inactive" },
+  { id: 1, name: "Prince Elijah Vequiso", position: "Site Engineer", department: "Engineering", status: "Active" },
+  { id: 2, name: "Joshua Tahanlagnit", position: "Project Manager", department: "Operations", status: "Active" },
+  { id: 3, name: "Clyde Tan", position: "Foreman", department: "Construction", status: "Inactive" },
+  { id: 4, name: "Rhigo Villahermosa", position: "HR Manager", department: "Admin", status: "Active" },
+  { id: 5, name: "Pearl Amania", position: "Safety Officer", department: "Operations", status: "Active" },
+  { id: 6, name: "Jenny Fernandez", position: "Architect", department: "Engineering", status: "Inactive" },
 ];
 
 const Employees = () => {

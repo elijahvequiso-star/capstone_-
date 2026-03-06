@@ -1,11 +1,11 @@
 import { Check, X } from "lucide-react";
 
 const leaves = [
-  { id: 1, employee: "Juan Dela Cruz", type: "Sick Leave", startDate: "2026-03-01", endDate: "2026-03-03", status: "Pending" },
-  { id: 2, employee: "Maria Santos", type: "Vacation", startDate: "2026-03-05", endDate: "2026-03-10", status: "Approved" },
-  { id: 3, employee: "Pedro Reyes", type: "Emergency", startDate: "2026-02-28", endDate: "2026-02-28", status: "Approved" },
-  { id: 4, employee: "Ana Garcia", type: "Maternity", startDate: "2026-04-01", endDate: "2026-06-01", status: "Pending" },
-  { id: 5, employee: "Carlos Lopez", type: "Vacation", startDate: "2026-03-15", endDate: "2026-03-20", status: "Rejected" },
+  { id: 1, employee: "Prince Elijah Vequiso", type: "Sick Leave", startDate: "2026-03-01", endDate: "2026-03-03", status: "Pending" },
+  { id: 2, employee: "Joshua Tahanlangit", type: "Vacation", startDate: "2026-03-05", endDate: "2026-03-10", status: "Approved" },
+  { id: 3, employee: "Charis Mier", type: "Emergency", startDate: "2026-02-28", endDate: "2026-02-28", status: "Approved" },
+  { id: 4, employee: "Clyde Tan", type: "Maternity", startDate: "2026-04-01", endDate: "2026-06-01", status: "Pending" },
+  { id: 5, employee: "Rhigo Villahermosa", type: "Vacation", startDate: "2026-03-15", endDate: "2026-03-20", status: "Rejected" },
 ];
 
 const Leaves = () => {

@@ -6,7 +6,7 @@ const API_EMP = "http://localhost:8000/api/employees/";
 const API_SITES = "http://localhost:8000/api/sites/";
 const REQUEST_TYPES = ["General", "Equipment", "Material", "Budget", "Other"];
 
-type Request = { id: number; employee: number; employee_name: string; site: number | null; site_name: string; type: string; date: string; status: "Pending" | "Approved" | "Rejected" };
+type Request = { id: number; employee: number; employee_name: string; employee_position: string; site: number | null; site_name: string; type: string; date: string; status: "Pending" | "Approved" | "Rejected" };
 type Employee = { id: number; name: string; site_name: string };
 type Site = { id: number; name: string };
 
@@ -128,7 +128,7 @@ const Requests = () => {
               <table className="w-full">
                 <thead>
                   <tr style={{ borderBottom: "1px solid #1e2535" }}>
-                    {["Employee", "Type", "Date", "Status", "Actions"].map(h => (
+                    {["Employee", "Position", "Site", "Type", "Date", "Status", "Actions"].map(h => (
                       <th key={h} className="px-5 py-2.5 text-left text-xs font-semibold" style={{ color: "#64748b" }}>{h}</th>
                     ))}
                   </tr>
@@ -136,7 +136,13 @@ const Requests = () => {
                 <tbody>
                   {reqs.map(r => (
                     <tr key={r.id} className="transition-colors hover:bg-white/5" style={{ borderTop: "1px solid #1e2535" }}>
-                      <td className="px-5 py-3 text-sm font-medium text-white">{r.employee_name}</td>
+                      <td className="px-5 py-3 text-sm font-semibold text-white">{r.employee_name}</td>
+                      <td className="px-5 py-3 text-xs" style={{ color: "#64748b" }}>{r.employee_position}</td>
+                      <td className="px-5 py-3">
+                        <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: "rgba(255,127,80,0.15)", color: "#ff7f50" }}>
+                          {r.site_name || "Unassigned"}
+                        </span>
+                      </td>
                       <td className="px-5 py-3 text-sm" style={{ color: "#94a3b8" }}>{r.type}</td>
                       <td className="px-5 py-3 text-sm" style={{ color: "#94a3b8" }}>{r.date}</td>
                       <td className="px-5 py-3">

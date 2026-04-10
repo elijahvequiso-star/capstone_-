@@ -28,19 +28,24 @@ const MyDashboard = () => {
         const [rRes, lRes, sRes] = await Promise.all([
           fetch("http://localhost:8000/api/requests/"),
           fetch("http://localhost:8000/api/leaves/"),
-          fetch("http://localhost:8000/api/salary/"),
+          fetch("http://localhost:8000/api/payroll/"),
         ]);
-        const [allRequests, allLeaves, allSalary] = await Promise.all([rRes.json(), lRes.json(), sRes.json()]);
+        const [allRequests, allLeaves, allPayroll] = await Promise.all([rRes.json(), lRes.json(), sRes.json()]);
 
         const requests = Array.isArray(allRequests) ? allRequests.filter((r: any) => r.employee_name === user.full_name) : [];
         const leaves = Array.isArray(allLeaves) ? allLeaves.filter((l: any) => l.employee_name === user.full_name) : [];
-        const salary = Array.isArray(allSalary) ? allSalary.filter((s: any) => s.employee_name === user.full_name) : [];
+        const payroll = Array.isArray(allPayroll) ? allPayroll.filter((p: any) => p.employee_name === user.full_name) : [];
+
+        // Latest week net pay as current salary
+        const latestPay = payroll.length > 0
+          ? payroll.sort((a: any, b: any) => b.week_start.localeCompare(a.week_start))[0]
+          : null;
 
         const all = [...requests, ...leaves];
         setStats({
           requests: requests.length,
           leaves: leaves.length,
-          netSalary: salary.reduce((s: number, e: any) => s + (Number(e.basic) - Number(e.deductions)), 0),
+          netSalary: latestPay ? Number(latestPay.net_pay) : 0,
           pending: all.filter(i => i.status === "Pending").length,
           approved: all.filter(i => i.status === "Approved").length,
           rejected: all.filter(i => i.status === "Rejected").length,
@@ -55,7 +60,7 @@ const MyDashboard = () => {
   const summaryCards = [
     { label: "My Requests", value: stats.requests, icon: FileText, color: "#3b82f6", bg: "rgba(59,130,246,0.15)", path: "/my-dashboard/requests" },
     { label: "My Leaves", value: stats.leaves, icon: CalendarDays, color: "#22c55e", bg: "rgba(34,197,94,0.15)", path: "/my-dashboard/leaves" },
-    { label: "Net Salary", value: `₱${stats.netSalary.toLocaleString()}`, icon: DollarSign, color: "#ff7f50", bg: "rgba(255,127,80,0.15)", path: "/my-dashboard/salary" },
+    { label: "Latest Week Pay", value: `₱${stats.netSalary.toLocaleString()}`, icon: DollarSign, color: "#ff7f50", bg: "rgba(255,127,80,0.15)", path: "/my-dashboard/salary" },
     { label: "Pending Items", value: stats.pending, icon: Clock, color: "#eab308", bg: "rgba(234,179,8,0.15)", path: "/my-dashboard/requests" },
   ];
 
@@ -185,7 +190,7 @@ const MyDashboard = () => {
               <DollarSign className="h-6 w-6" style={{ color: "#ff7f50" }} />
             </div>
             <div>
-              <p className="text-sm" style={{ color: "#64748b" }}>Current Net Salary</p>
+              <p className="text-sm" style={{ color: "#64748b" }}>Latest Week Net Pay</p>
               <p className="text-3xl font-bold text-white">₱{stats.netSalary.toLocaleString()}</p>
             </div>
           </div>

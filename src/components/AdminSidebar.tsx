@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileText, LogOut, HardHat, MapPin, Clock } from "lucide-react";
+import { LayoutDashboard, Users, FileText, CalendarDays, LogOut, HardHat, MapPin, Clock } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
 import {
@@ -21,6 +21,7 @@ export function AdminSidebar() {
     { title: "Sites", url: "/dashboard/sites", icon: MapPin, show: true },
     { title: "Employees", url: "/dashboard/employees", icon: Users, show: true },
     { title: "Requests", url: "/dashboard/requests", icon: FileText, show: true },
+    { title: "Leaves", url: "/dashboard/leaves", icon: CalendarDays, show: true },
     { title: "Payroll", url: "/dashboard/payroll", icon: Clock, show: true },
   ].filter(i => i.show);
 

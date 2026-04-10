@@ -13,6 +13,7 @@ import AdminLayout from "./components/AdminLayout";
 import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
 import Requests from "./pages/Requests";
+import Leaves from "./pages/Leaves";
 import Sites from "./pages/Sites";
 import Payroll from "./pages/Payroll";
 
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="sites" element={<Sites />} />
             <Route path="employees" element={<Employees />} />
             <Route path="requests" element={<Requests />} />
+            <Route path="leaves" element={<Leaves />} />
             <Route path="payroll" element={<Payroll />} />
           </Route>
 

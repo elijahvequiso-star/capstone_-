@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import PublicNavbar from "@/components/PublicNavbar";
-// You can use a different image or the same hero one – ideally something architectural/blueprint/cranes/skyline
-
+import Footer from "@/components/Footer";
 import aboutHeroImg from "@/assets/hero-construction.jpg";
 
 const About = () => {
@@ -45,8 +44,8 @@ const About = () => {
       </section>
 
       {/* Main Content */}
-      <section className="relative z-10 py-20 md:py-32">
-        <div className="mx-auto max-w-6xl px-6 lg:px-8">
+      <section className="relative z-10 py-12 md:py-16">
+        <div className="mx-auto max-w-6xl px-4 lg:px-6">
           <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-24 items-center">
             {/* Left: Story */}
             <div className="space-y-8">
@@ -81,9 +80,9 @@ const About = () => {
       </section>
 
       {/* Mission & Values */}
-      <section className="relative py-20 md:py-32 bg-gradient-to-b from-gray-950 to-gray-900">
-        <div className="mx-auto max-w-6xl px-6 lg:px-8">
-          <div className="text-center mb-16">
+      <section className="relative py-12 md:py-16 bg-gradient-to-b from-gray-950 to-gray-900">
+        <div className="mx-auto max-w-6xl px-4 lg:px-6">
+          <div className="text-center mb-10">
             <h2 className="font-heading text-4xl font-bold tracking-tight md:text-5xl">
               Our Core Principles
             </h2>
@@ -121,12 +120,12 @@ const About = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-24 md:py-32">
-        <div className="mx-auto max-w-4xl px-6 text-center">
-          <h2 className="font-heading text-4xl md:text-5xl font-bold tracking-tight mb-8">
+      <section className="relative py-12 md:py-16">
+        <div className="mx-auto max-w-4xl px-4 text-center">
+          <h2 className="font-heading text-3xl md:text-4xl font-bold tracking-tight mb-5">
             Ready to Build Something Extraordinary?
           </h2>
-          <p className="text-xl text-gray-300 mb-10 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-300 mb-7 max-w-3xl mx-auto">
             Partner with VEQUISO to turn your vision into enduring reality.
           </p>
           <Link
@@ -143,6 +142,7 @@ const About = () => {
           </Link>
         </div>
       </section>
+      <Footer />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import PublicNavbar from "@/components/PublicNavbar";
+import Footer from "@/components/Footer";
 import heroImg from "@/assets/hero-construction.jpg";
 
 const Index = () => {
@@ -52,7 +53,7 @@ const Index = () => {
           {/* CTA – premium button with gradient + scale + shadow lift */}
           <div className="pt-6" style={{ animationDelay: "0.55s" }}>
             <Link
-              to="/signup"
+              to="/about"
               className={`
                 group relative inline-flex items-center justify-center 
                 overflow-hidden rounded-full bg-gradient-to-r from-amber-600 via-yellow-600 to-amber-700 
@@ -81,6 +82,7 @@ const Index = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
         </svg>
       </div>
+      <Footer />
     </div>
   );
 };

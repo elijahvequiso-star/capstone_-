@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { Users, FileText, DollarSign, MapPin, Clock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { useNavigate, useLocation } from "react-router-dom";
+import API_BASE from "@/lib/config";
 
-const API = "http://localhost:8000/api";
 const COLORS = ["#ff7f50", "#3b82f6", "#22c55e", "#a855f7", "#eab308", "#ef4444", "#06b6d4"];
 
 const Dashboard = () => {
@@ -23,8 +23,8 @@ const Dashboard = () => {
     const fetchAll = async () => {
       try {
         const [eRes, sRes, rRes, salRes] = await Promise.all([
-          fetch(`${API}/employees/`), fetch(`${API}/sites/`),
-          fetch(`${API}/requests/`), fetch(`${API}/salary/`),
+          fetch(`${API_BASE}/employees/`), fetch(`${API_BASE}/sites/`),
+          fetch(`${API_BASE}/requests/`), fetch(`${API_BASE}/salary/`),
         ]);
         const [e, s, r, sal] = await Promise.all([eRes.json(), sRes.json(), rRes.json(), salRes.json()]);
         setEmployees(Array.isArray(e) ? e : []);

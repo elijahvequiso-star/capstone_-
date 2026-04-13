@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Check, X, Trash2, Loader2, Plus, FileText } from "lucide-react";
+import API_BASE from "@/lib/config";
 
-const API_REQ = "http://localhost:8000/api/requests/";
-const API_EMP = "http://localhost:8000/api/employees/";
-const API_SITES = "http://localhost:8000/api/sites/";
+const API_REQ = `${API_BASE}/requests/`;
+const API_EMP = `${API_BASE}/employees/`;
+const API_SITES = `${API_BASE}/sites/`;
 const REQUEST_TYPES = ["General", "Equipment", "Material", "Budget", "Other"];
 
 type Request = { id: number; employee: number; employee_name: string; employee_position: string; site: number | null; site_name: string; type: string; date: string; status: "Pending" | "Approved" | "Rejected" };

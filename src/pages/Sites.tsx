@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { MapPin, Plus, Trash2, Edit, Loader2, Users, ChevronDown, ChevronRight, CheckCircle, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import API_BASE from "@/lib/config";
 
-const API_SITES = "http://localhost:8000/api/sites/";
-const API_EMP = "http://localhost:8000/api/employees/";
+const API_SITES = `${API_BASE}/sites/`;
+const API_EMP = `${API_BASE}/employees/`;
 
 type Site = { id: number; name: string; location: string; status: "Active" | "Ongoing" | "Completed"; employee_count: number };
 type Employee = { id: number; name: string; position: string; status: string; site: number | null };

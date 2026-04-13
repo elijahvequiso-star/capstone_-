@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Edit, Trash2, Loader2, ChevronDown, ChevronRight, Users, MapPin, Plus } from "lucide-react";
+import API_BASE from "@/lib/config";
 
-const API_EMP = "http://localhost:8000/api/employees/";
-const API_SITES = "http://localhost:8000/api/sites/";
+const API_EMP = `${API_BASE}/employees/`;
+const API_SITES = `${API_BASE}/sites/`;
 
 type Employee = { id: number; name: string; position: string; department: string; status: "Active" | "Inactive"; site: number | null; site_name: string };
 type Site = { id: number; name: string; status: string };

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Check, X, Trash2, Loader2, CalendarDays } from "lucide-react";
+import API_BASE from "@/lib/config";
 
-const API_LEAVES = "http://localhost:8000/api/leaves/";
+const API_LEAVES = `${API_BASE}/leaves/`;
 
 type Leave = {
   id: number;

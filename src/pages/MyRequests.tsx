@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Trash2, Loader2, Plus, FileText } from "lucide-react";
+import API_BASE from "@/lib/config";
 
-const API_REQ = "http://localhost:8000/api/requests/";
-const API_EMP = "http://localhost:8000/api/employees/";
+const API_REQ = `${API_BASE}/requests/`;
+const API_EMP = `${API_BASE}/employees/`;
 const REQUEST_TYPES = ["Equipment", "Material", "Leave", "Budget", "Other"];
 
 type Request = {

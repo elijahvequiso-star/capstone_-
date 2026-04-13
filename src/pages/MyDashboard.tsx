@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FileText, CalendarDays, DollarSign, Clock, ChevronRight, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import API_BASE from "@/lib/config";
 
 const card = {
   background: "#161b27",
@@ -26,9 +27,9 @@ const MyDashboard = () => {
     const fetchStats = async () => {
       try {
         const [rRes, lRes, sRes] = await Promise.all([
-          fetch("http://localhost:8000/api/requests/"),
-          fetch("http://localhost:8000/api/leaves/"),
-          fetch("http://localhost:8000/api/payroll/"),
+          fetch(`${API_BASE}/requests/`),
+          fetch(`${API_BASE}/leaves/`),
+          fetch(`${API_BASE}/payroll/`),
         ]);
         const [allRequests, allLeaves, allPayroll] = await Promise.all([rRes.json(), lRes.json(), sRes.json()]);
 

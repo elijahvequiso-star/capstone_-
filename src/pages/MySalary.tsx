@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Printer, Loader2, DollarSign, Clock, TrendingUp } from "lucide-react";
+import API_BASE from "@/lib/config";
 
-const API_PAYROLL = "http://localhost:8000/api/payroll/";
+const API_PAYROLL = `${API_BASE}/payroll/`;
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 

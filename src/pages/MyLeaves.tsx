@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Trash2, Loader2, Plus, CalendarDays } from "lucide-react";
+import API_BASE from "@/lib/config";
 
-const API_LEAVES = "http://localhost:8000/api/leaves/";
-const API_EMP = "http://localhost:8000/api/employees/";
+const API_LEAVES = `${API_BASE}/leaves/`;
+const API_EMP = `${API_BASE}/employees/`;
 const LEAVE_TYPES = ["Sick Leave", "Vacation", "Emergency", "Maternity", "Paternity", "Other"];
 
 type Leave = {

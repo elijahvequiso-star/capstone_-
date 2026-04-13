@@ -4,6 +4,7 @@ import PublicNavbar from "@/components/PublicNavbar";
 import Footer from "@/components/Footer";
 import heroImg from "@/assets/hero-construction.jpg";
 import { Eye, EyeOff } from "lucide-react";
+import API_BASE from "@/lib/config";
 
 const ROLES = [
   { value: "mason", label: "Mason" },
@@ -26,7 +27,7 @@ const SignUp = () => {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/auth/register/", {
+      const res = await fetch(`${API_BASE}/auth/register/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

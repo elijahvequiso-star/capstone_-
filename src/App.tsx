@@ -31,7 +31,7 @@ const getUser = () => {
 };
 
 const ADMIN_ROLES = ["admin", "hr"];
-const EMPLOYEE_ROLES = ["mason", "electrician", "driver", "foreman"];
+const EMPLOYEE_ROLES = ["employee", "mason", "electrician", "driver", "foreman"];
 
 const isAdmin = (user: any) => user && ADMIN_ROLES.includes(user.role);
 const isEmployee = (user: any) => user && EMPLOYEE_ROLES.includes(user.role);
@@ -61,7 +61,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<About />} />

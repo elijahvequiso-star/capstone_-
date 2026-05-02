@@ -16,8 +16,18 @@ const badge = (status: string) => {
   return { background: "rgba(234,179,8,0.15)", color: "#eab308" };
 };
 
+const getDisplayName = (user: any) => {
+  const fullName = (user.full_name || "").trim();
+  const employeeId = (user.employee_id || user.username || "").trim();
+  if (fullName && fullName.toUpperCase() !== employeeId.toUpperCase()) return fullName;
+  return user.name || "Employee";
+};
+
 const MyDashboard = () => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const [employeeProfile, setEmployeeProfile] = useState<any | null>(null);
+  const profile = employeeProfile || user;
+  const displayName = getDisplayName(profile);
   const navigate = useNavigate();
   const [stats, setStats] = useState({ requests: 0, leaves: 0, netSalary: 0, pending: 0, approved: 0, rejected: 0 });
   const [recentRequests, setRecentRequests] = useState<any[]>([]);
@@ -32,10 +42,25 @@ const MyDashboard = () => {
           fetch(`${API_BASE}/payroll/`),
         ]);
         const [allRequests, allLeaves, allPayroll] = await Promise.all([rRes.json(), lRes.json(), sRes.json()]);
+        const employeesRes = await fetch(`${API_BASE}/employees/`);
+        const employees = await employeesRes.json();
+        const employee = Array.isArray(employees)
+          ? employees.find((item: any) => item.employee_id === user.employee_id)
+          : null;
+        if (employee) {
+          setEmployeeProfile({
+            ...user,
+            full_name: employee.full_name || employee.name,
+            employee_id: employee.employee_id,
+            role: employee.role,
+            position: employee.position,
+            status: employee.status,
+          });
+        }
 
-        const requests = Array.isArray(allRequests) ? allRequests.filter((r: any) => r.employee_name === user.full_name) : [];
-        const leaves = Array.isArray(allLeaves) ? allLeaves.filter((l: any) => l.employee_name === user.full_name) : [];
-        const payroll = Array.isArray(allPayroll) ? allPayroll.filter((p: any) => p.employee_name === user.full_name) : [];
+        const requests = Array.isArray(allRequests) ? allRequests.filter((r: any) => r.employee_id === user.employee_id) : [];
+        const leaves = Array.isArray(allLeaves) ? allLeaves.filter((l: any) => l.employee_id === user.employee_id) : [];
+        const payroll = Array.isArray(allPayroll) ? allPayroll.filter((p: any) => p.employee_id === user.employee_id) : [];
 
         // Latest week net pay as current salary
         const latestPay = payroll.length > 0
@@ -71,9 +96,9 @@ const MyDashboard = () => {
       <div className="rounded-2xl p-6" style={{ background: "linear-gradient(135deg, #1a1f2e, #1e2535)", border: "1px solid #1e2535" }}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Welcome back, {user.full_name?.split(" ")[0]} 👋</h1>
+            <h1 className="text-2xl font-bold text-white">Welcome back, {displayName.split(" ")[0]}</h1>
             <p className="mt-1 text-sm capitalize" style={{ color: "#94a3b8" }}>
-              {user.role?.replace("_", " ")} · {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+              {profile.position || profile.role?.replace("_", " ")} · {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-4">
@@ -91,6 +116,20 @@ const MyDashboard = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        {[
+          { label: "Full Name", value: displayName },
+          { label: "Employee ID", value: profile.employee_id || "-" },
+          { label: "Role / Position", value: profile.position || profile.role || "-" },
+          { label: "Status", value: profile.status === "ACTIVE" ? "Active" : profile.status === "PENDING" ? "Pending" : profile.status || "-" },
+        ].map((item) => (
+          <div key={item.label} className="rounded-2xl p-4" style={{ background: "#161b27", border: "1px solid #1e2535" }}>
+            <p className="text-xs mb-1" style={{ color: "#64748b" }}>{item.label}</p>
+            <p className="text-sm font-semibold text-white">{item.value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Summary Cards */}

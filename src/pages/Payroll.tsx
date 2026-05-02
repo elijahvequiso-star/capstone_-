@@ -4,16 +4,20 @@ import API_BASE from "@/lib/config";
 
 const API_PAYROLL = `${API_BASE}/payroll/`;
 const API_EMPLOYEES = `${API_BASE}/employees/`;
+const API_SITES = `${API_BASE}/sites/`;
+const API_SALARY = `${API_BASE}/salary/`;
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type PayrollRecord = {
   id: number;
   employee: number;
+  employee_id?: string;
   employee_name: string;
   employee_position: string;
   site_name: string;
   week_start: string;
+  week_end?: string;
   hourly_rate: number;
   mon: number; tue: number; wed: number; thu: number; fri: number; sat: number; sun: number;
   deductions: number;
@@ -22,7 +26,15 @@ type PayrollRecord = {
   net_pay: number;
 };
 
-type Employee = { id: number; name: string; position: string; site_name: string };
+type Employee = { id: number; employee_id?: string; name: string; full_name?: string; position: string; site: number | null; site_name: string; status?: string };
+type Site = { id: number; name: string; status: string };
+type SalaryRecord = { id: number; employee: number; hourly_rate: number; created_at?: string; updated_at?: string };
+type BulkPayrollRow = {
+  employee: Employee;
+  hourly_rate: string;
+  deductions: string;
+  mon: string; tue: string; wed: string; thu: string; fri: string; sat: string; sun: string;
+};
 
 const emptyForm = {
   employee: "", week_start: "", hourly_rate: "",
@@ -41,16 +53,55 @@ const getMonday = () => {
   return d.toISOString().split("T")[0];
 };
 
+const addDays = (date: string, days: number) => {
+  const d = new Date(`${date}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+};
+
+const getRateMap = (records: SalaryRecord[]) => {
+  const sorted = [...records].sort((a, b) => (b.updated_at || b.created_at || "").localeCompare(a.updated_at || a.created_at || ""));
+  return sorted.reduce<Record<number, number>>((map, record) => {
+    if (map[record.employee] === undefined) map[record.employee] = Number(record.hourly_rate || 0);
+    return map;
+  }, {});
+};
+
+const makeEmptyBulkRow = (employee: Employee, hourlyRate: number): BulkPayrollRow => ({
+  employee,
+  hourly_rate: String(hourlyRate || 0),
+  deductions: "0",
+  mon: "0",
+  tue: "0",
+  wed: "0",
+  thu: "0",
+  fri: "0",
+  sat: "0",
+  sun: "0",
+});
+
+const getRowTotals = (row: BulkPayrollRow) => {
+  const totalHours = DAYS.reduce((sum, day) => sum + Number(row[day] || 0), 0);
+  const gross = totalHours * Number(row.hourly_rate || 0);
+  const net = gross - Number(row.deductions || 0);
+  return { totalHours, gross, net };
+};
+
 const Payroll = () => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const canManage = user.role === "hr";
 
   const [payrolls, setPayrolls] = useState<PayrollRecord[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [salaryRates, setSalaryRates] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<PayrollRecord | null>(null);
   const [form, setForm] = useState({ ...emptyForm, week_start: getMonday() });
+  const [selectedSite, setSelectedSite] = useState("");
+  const [weekRange, setWeekRange] = useState({ start: getMonday(), end: addDays(getMonday(), 6) });
+  const [bulkRows, setBulkRows] = useState<BulkPayrollRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [payslip, setPayslip] = useState<PayrollRecord | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -59,14 +110,22 @@ const Payroll = () => {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [pRes, eRes] = await Promise.all([fetch(API_PAYROLL), fetch(API_EMPLOYEES)]);
+      const [pRes, eRes, siteRes, salaryRes] = await Promise.all([fetch(API_PAYROLL), fetch(API_EMPLOYEES), fetch(API_SITES), fetch(API_SALARY)]);
       setPayrolls(await pRes.json());
-      setEmployees(await eRes.json());
+      const employeeData = await eRes.json();
+      const salaryData = await salaryRes.json();
+      setEmployees(employeeData);
+      setSites(await siteRes.json());
+      setSalaryRates(getRateMap(Array.isArray(salaryData) ? salaryData : []));
     } catch { }
     setLoading(false);
   };
 
   useEffect(() => { fetchAll(); }, []);
+
+  const selectedSiteEmployees = selectedSite
+    ? employees.filter((employee) => String(employee.site || "") === selectedSite)
+    : [];
 
   // Compute live preview
   const previewHours = DAYS.reduce((s, d) => s + Number((form as any)[d] || 0), 0);
@@ -87,7 +146,15 @@ const Payroll = () => {
   // Unique weeks for filter
   const weeks = [...new Set(payrolls.map(p => p.week_start))].sort((a, b) => b.localeCompare(a));
 
-  const openAdd = () => { setEditTarget(null); setForm({ ...emptyForm, week_start: getMonday() }); setShowModal(true); };
+  const openAdd = () => {
+    const monday = getMonday();
+    setEditTarget(null);
+    setForm({ ...emptyForm, week_start: monday });
+    setSelectedSite("");
+    setWeekRange({ start: monday, end: addDays(monday, 6) });
+    setBulkRows([]);
+    setShowModal(true);
+  };
   const openEdit = (p: PayrollRecord) => {
     setEditTarget(p);
     setForm({
@@ -103,7 +170,7 @@ const Payroll = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
     const body = {
-      employee: form.employee, week_start: form.week_start,
+      employee: form.employee, week_start: form.week_start, week_end: addDays(form.week_start, 6),
       hourly_rate: form.hourly_rate,
       mon: form.mon, tue: form.tue, wed: form.wed,
       thu: form.thu, fri: form.fri, sat: form.sat, sun: form.sun,
@@ -115,6 +182,54 @@ const Payroll = () => {
       await fetch(API_PAYROLL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     }
     await fetchAll(); setSaving(false); setShowModal(false);
+  };
+
+  const handleSiteChange = (siteId: string) => {
+    setSelectedSite(siteId);
+    const siteEmployees = employees.filter((employee) => String(employee.site || "") === siteId);
+    setBulkRows(siteEmployees.map((employee) => makeEmptyBulkRow(employee, salaryRates[employee.id] || 0)));
+  };
+
+  const updateBulkRow = (index: number, key: keyof Omit<BulkPayrollRow, "employee">, value: string) => {
+    setBulkRows((rows) => rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
+  };
+
+  const handleBulkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const rowsToSave = bulkRows.filter((row) => DAYS.some((day) => Number(row[day] || 0) > 0));
+    if (rowsToSave.length === 0) {
+      alert("Enter hours for at least one employee before saving payroll.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await Promise.all(rowsToSave.map((row) => {
+        const existing = payrolls.find((payroll) => payroll.employee === row.employee.id && payroll.week_start === weekRange.start);
+        return fetch(existing ? `${API_PAYROLL}${existing.id}/` : API_PAYROLL, {
+          method: existing ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          employee: row.employee.id,
+          week_start: weekRange.start,
+          week_end: weekRange.end,
+          hourly_rate: row.hourly_rate,
+          mon: row.mon,
+          tue: row.tue,
+          wed: row.wed,
+          thu: row.thu,
+          fri: row.fri,
+          sat: row.sat,
+          sun: row.sun,
+          deductions: row.deductions,
+        }),
+        });
+      }));
+      await fetchAll();
+      setShowModal(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -223,7 +338,9 @@ const Payroll = () => {
                           <tr key={r.id} className="transition-colors hover:bg-white/5" style={{ borderTop: "1px solid #1e2535" }}>
                             <td className="px-3 py-3">
                               <p className="text-sm font-medium text-white whitespace-nowrap">{r.employee_name}</p>
-                              <p className="text-xs" style={{ color: "#64748b" }}>{r.employee_position}</p>
+                              <p className="text-xs" style={{ color: "#64748b" }}>
+                                {r.employee_id ? `${r.employee_id} - ` : ""}{r.employee_position}
+                              </p>
                             </td>
                             <td className="px-3 py-3 text-xs whitespace-nowrap" style={{ color: "#94a3b8" }}>{r.week_start}</td>
                             <td className="px-3 py-3 text-xs whitespace-nowrap" style={{ color: "#94a3b8" }}>₱{Number(r.hourly_rate).toLocaleString()}</td>
@@ -260,7 +377,7 @@ const Payroll = () => {
       {/* Add / Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }} onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-lg rounded-2xl p-6 shadow-2xl" style={{ background: "#161b27", border: "1px solid #1e2535", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+          <div className={`w-full ${editTarget ? "max-w-lg" : "max-w-7xl"} rounded-2xl p-6 shadow-2xl`} style={{ background: "#161b27", border: "1px solid #1e2535", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}>
                 <Clock className="h-5 w-5 text-white" />
@@ -271,6 +388,103 @@ const Payroll = () => {
               </div>
             </div>
 
+            {!editTarget ? (
+              <form onSubmit={handleBulkSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Select Site</label>
+                    <select required value={selectedSite} onChange={e => handleSiteChange(e.target.value)}
+                      className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                      style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
+                      <option value="">Select site</option>
+                      {sites.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Week Start</label>
+                    <input required type="date" value={weekRange.start}
+                      onChange={e => setWeekRange({ start: e.target.value, end: addDays(e.target.value, 6) })}
+                      className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                      style={{ background: "#0f1117", border: "1px solid #1e2535" }} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Week End</label>
+                    <input required type="date" value={weekRange.end} min={weekRange.start}
+                      onChange={e => setWeekRange({ ...weekRange, end: e.target.value })}
+                      className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                      style={{ background: "#0f1117", border: "1px solid #1e2535" }} />
+                  </div>
+                </div>
+
+                {!selectedSite ? (
+                  <div className="rounded-2xl py-12 text-center" style={{ background: "#0f1117", border: "1px solid #1e2535", color: "#64748b" }}>
+                    Select a site to load assigned employees.
+                  </div>
+                ) : bulkRows.length === 0 ? (
+                  <div className="rounded-2xl py-12 text-center" style={{ background: "#0f1117", border: "1px solid #1e2535", color: "#64748b" }}>
+                    No employees are assigned to this site.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl" style={{ border: "1px solid #1e2535" }}>
+                    <table className="w-full" style={{ minWidth: "1180px" }}>
+                      <thead>
+                        <tr style={{ background: "#1e2535" }}>
+                          {["Employee Name", "Role / Position", "Rate/hr", ...DAY_LABELS, "Deductions (₱)", "Total Hours", "Gross", "Net Pay"].map(h => (
+                            <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap" style={{ color: "#64748b" }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bulkRows.map((row, index) => {
+                          const totals = getRowTotals(row);
+                          return (
+                            <tr key={row.employee.id} style={{ borderTop: "1px solid #1e2535" }}>
+                              <td className="px-3 py-3">
+                                <p className="text-sm font-semibold text-white">{row.employee.full_name || row.employee.name}</p>
+                                {row.employee.employee_id && <p className="text-xs" style={{ color: "#64748b" }}>{row.employee.employee_id}</p>}
+                              </td>
+                              <td className="px-3 py-3 text-sm" style={{ color: "#94a3b8" }}>{row.employee.position}</td>
+                              <td className="px-2 py-3">
+                                <input type="number" min="0" step="0.01" value={row.hourly_rate}
+                                  onChange={e => updateBulkRow(index, "hourly_rate", e.target.value)}
+                                  className="w-24 rounded-lg px-2 py-2 text-right text-sm text-white outline-none"
+                                  style={{ background: "#0f1117", border: "1px solid #1e2535" }} />
+                              </td>
+                              {DAYS.map(day => (
+                                <td key={day} className="px-2 py-3">
+                                  <input type="number" min="0" max="24" step="0.5" value={row[day]}
+                                    onChange={e => updateBulkRow(index, day, e.target.value)}
+                                    className="w-16 rounded-lg px-2 py-2 text-center text-sm text-white outline-none"
+                                    style={{ background: "#0f1117", border: `1px solid ${Number(row[day]) > 0 ? "#ff7f50" : "#1e2535"}` }} />
+                                </td>
+                              ))}
+                              <td className="px-2 py-3">
+                                <input type="number" min="0" step="0.01" value={row.deductions}
+                                  onChange={e => updateBulkRow(index, "deductions", e.target.value)}
+                                  className="w-24 rounded-lg px-2 py-2 text-right text-sm text-white outline-none"
+                                  style={{ background: "#0f1117", border: "1px solid #1e2535" }} />
+                              </td>
+                              <td className="px-3 py-3 text-sm font-semibold" style={{ color: "#3b82f6" }}>{totals.totalHours}h</td>
+                              <td className="px-3 py-3 text-sm whitespace-nowrap" style={{ color: "#94a3b8" }}>₱{totals.gross.toLocaleString()}</td>
+                              <td className="px-3 py-3 text-sm font-bold whitespace-nowrap" style={{ color: "#22c55e" }}>₱{Math.max(0, totals.net).toLocaleString()}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-1">
+                  <button type="submit" disabled={saving || bulkRows.length === 0} className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-60 hover:brightness-110 transition-all"
+                    style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}>
+                    {saving ? "Saving..." : "Save Payroll"}
+                  </button>
+                  <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-xl py-2.5 text-sm font-semibold hover:bg-white/5 transition-all"
+                    style={{ border: "1px solid #1e2535", color: "#64748b" }}>Cancel</button>
+                </div>
+              </form>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Employee + Week */}
               <div className="grid grid-cols-2 gap-3">
@@ -280,7 +494,7 @@ const Payroll = () => {
                     className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
                     style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
                     <option value="">Select employee</option>
-                    {employees.map(e => <option key={e.id} value={e.id}>{e.name} — {e.site_name || "Unassigned"}</option>)}
+                    {employees.map(e => <option key={e.id} value={e.id}>{e.employee_id ? `${e.employee_id} - ` : ""}{e.name} - {e.site_name || "Unassigned"}</option>)}
                   </select>
                 </div>
                 <div>
@@ -362,6 +576,7 @@ const Payroll = () => {
                   style={{ border: "1px solid #1e2535", color: "#64748b" }}>Cancel</button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}
@@ -384,7 +599,9 @@ const Payroll = () => {
             {/* Employee info */}
             <div className="rounded-xl p-3 mb-4" style={{ background: "#0f1117" }}>
               <p className="font-semibold text-white">{payslip.employee_name}</p>
-              <p className="text-xs" style={{ color: "#64748b" }}>{payslip.employee_position} · {payslip.site_name}</p>
+              <p className="text-xs" style={{ color: "#64748b" }}>
+                {payslip.employee_id ? `${payslip.employee_id} - ` : ""}{payslip.employee_position} - {payslip.site_name}
+              </p>
               <p className="text-xs mt-1" style={{ color: "#475569" }}>Week of {payslip.week_start}</p>
             </div>
 

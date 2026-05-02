@@ -4,7 +4,6 @@ import API_BASE from "@/lib/config";
 
 const API_LEAVES = `${API_BASE}/leaves/`;
 const API_EMP = `${API_BASE}/employees/`;
-const LEAVE_TYPES = ["Sick Leave", "Vacation", "Emergency", "Maternity", "Paternity", "Other"];
 
 type Leave = {
   id: number;
@@ -30,26 +29,24 @@ const MyLeaves = () => {
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ type: LEAVE_TYPES[0], start_date: "", end_date: "" });
+  const [form, setForm] = useState({ type: "", start_date: "", end_date: "" });
   const [saving, setSaving] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // Find employee ID by name
       const eRes = await fetch(API_EMP);
       const employees = await eRes.json();
       const me = Array.isArray(employees)
-        ? employees.find((e: any) => e.name === user.full_name)
+        ? employees.find((e: any) => e.employee_id === user.employee_id || e.name === user.full_name)
         : null;
       if (me) setEmployeeId(me.id);
 
-      // Get leaves filtered by employee name
       const lRes = await fetch(API_LEAVES);
       const data = await lRes.json();
       setLeaves(
         Array.isArray(data)
-          ? data.filter((l: Leave) => l.employee_name === user.full_name)
+          ? data.filter((l: Leave) => l.employee === me?.id || l.employee_name === user.full_name)
           : []
       );
     } catch { setLeaves([]); }
@@ -79,7 +76,7 @@ const MyLeaves = () => {
         }),
       });
       await fetchAll();
-      setForm({ type: LEAVE_TYPES[0], start_date: "", end_date: "" });
+      setForm({ type: "", start_date: "", end_date: "" });
       setShowModal(false);
     } catch { }
     setSaving(false);
@@ -142,7 +139,7 @@ const MyLeaves = () => {
           <table className="w-full">
             <thead>
               <tr style={{ background: "#1e2535" }}>
-                {["Type", "Start", "End", "Days", "Status", "Action"].map(h => (
+                {["Details", "Start", "End", "Days", "Status", "Action"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-xs font-semibold" style={{ color: "#64748b" }}>{h}</th>
                 ))}
               </tr>
@@ -187,12 +184,11 @@ const MyLeaves = () => {
             )}
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Leave Type</label>
-                <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                  style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
-                  {LEAVE_TYPES.map(t => <option key={t}>{t}</option>)}
-                </select>
+                <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Leave Details</label>
+                <textarea required value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
+                  placeholder="Describe your leave reason in detail"
+                  className="min-h-28 w-full resize-y rounded-xl px-4 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "#0f1117", border: "1px solid #1e2535" }} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

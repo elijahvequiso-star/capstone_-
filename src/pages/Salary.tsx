@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Printer, Edit, Trash2, Loader2, Plus, DollarSign } from "lucide-react";
+import API_BASE from "@/lib/config";
 
-const API_SALARY = "http://localhost:8000/api/salary/";
-const API_EMPLOYEES = "http://localhost:8000/api/employees/";
+const API_SALARY = `${API_BASE}/salary/`;
+const API_EMPLOYEES = `${API_BASE}/employees/`;
 
-type SalaryRecord = { id: number; employee: number; employee_name: string; employee_position: string; site_name: string; hourly_rate: number; hours_worked: number; deductions: number; computed_salary: number };
-type Employee = { id: number; name: string; position: string; site_name: string };
+type SalaryRecord = { id: number; employee: number; employee_id?: string; employee_name: string; employee_position: string; site_name: string; hourly_rate: number; hours_worked: number; deductions: number; computed_salary: number };
+type Employee = { id: number; employee_id?: string; name: string; position: string; site_name: string };
 
 const card = { background: "#161b27", border: "1px solid #1e2535", borderRadius: "16px" };
 const emptyForm = { employee: "", hourly_rate: "", hours_worked: "", deductions: "0" };
@@ -143,7 +144,10 @@ const Salary = () => {
                   <tbody>
                     {records.map(r => (
                       <tr key={r.id} className="transition-colors hover:bg-white/5" style={{ borderTop: "1px solid #1e2535" }}>
-                        <td className="px-5 py-3 text-sm font-medium text-white">{r.employee_name}</td>
+                        <td className="px-5 py-3">
+                          <p className="text-sm font-medium text-white">{r.employee_name}</p>
+                          {r.employee_id && <p className="text-xs" style={{ color: "#64748b" }}>{r.employee_id}</p>}
+                        </td>
                         <td className="px-5 py-3 text-sm" style={{ color: "#94a3b8" }}>{r.employee_position}</td>
                         <td className="px-5 py-3 text-sm" style={{ color: "#94a3b8" }}>₱{Number(r.hourly_rate).toLocaleString()}/hr</td>
                         <td className="px-5 py-3 text-sm" style={{ color: "#94a3b8" }}>{r.hours_worked}h</td>
@@ -180,7 +184,7 @@ const Salary = () => {
                   className="w-full rounded-xl px-4 py-2.5 text-sm text-white outline-none"
                   style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
                   <option value="">Select employee</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name} — {e.site_name || "Unassigned"}</option>)}
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.employee_id ? `${e.employee_id} - ` : ""}{e.name} - {e.site_name || "Unassigned"}</option>)}
                 </select>
               </div>
               {[
@@ -236,6 +240,7 @@ const Salary = () => {
             <div className="space-y-2.5 pb-4" style={{ borderBottom: "1px solid #1e2535" }}>
               {[
                 { label: "Employee", value: payslip.employee_name },
+                { label: "Employee ID", value: payslip.employee_id || "N/A" },
                 { label: "Position", value: payslip.employee_position },
                 { label: "Site", value: payslip.site_name },
                 { label: "Hourly Rate", value: `₱${Number(payslip.hourly_rate).toLocaleString()}/hr` },

@@ -6,6 +6,7 @@ const API_LEAVES = `${API_BASE}/leaves/`;
 
 type Leave = {
   id: number;
+  employee_id?: string;
   employee_name: string;
   employee_position: string;
   site_name: string;
@@ -137,7 +138,7 @@ const Leaves = () => {
               <table className="w-full">
                 <thead>
                   <tr style={{ borderBottom: "1px solid #1e2535" }}>
-                    {["Employee", "Position", "Site", "Leave Type", "Start", "End", "Days", "Status", "Actions"].map(h => (
+                    {["Employee", "Position", "Site", "Details", "Start", "End", "Days", "Status", "Actions"].map(h => (
                       <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold" style={{ color: "#64748b" }}>{h}</th>
                     ))}
                   </tr>
@@ -145,7 +146,10 @@ const Leaves = () => {
                 <tbody>
                   {records.map(l => (
                     <tr key={l.id} className="transition-colors hover:bg-white/5" style={{ borderTop: "1px solid #1e2535" }}>
-                      <td className="px-4 py-3 text-sm font-semibold text-white">{l.employee_name}</td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-semibold text-white">{l.employee_name}</p>
+                        {l.employee_id && <p className="text-xs" style={{ color: "#64748b" }}>{l.employee_id}</p>}
+                      </td>
                       <td className="px-4 py-3 text-xs" style={{ color: "#64748b" }}>{l.employee_position}</td>
                       <td className="px-4 py-3">
                         <span className="rounded-full px-2 py-0.5 text-xs font-medium"
@@ -153,7 +157,7 @@ const Leaves = () => {
                           {l.site_name}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm" style={{ color: "#94a3b8" }}>{l.type}</td>
+                      <td className="max-w-xs whitespace-pre-wrap px-4 py-3 text-sm" style={{ color: "#94a3b8" }}>{l.type}</td>
                       <td className="px-4 py-3 text-sm" style={{ color: "#94a3b8" }}>{l.start_date}</td>
                       <td className="px-4 py-3 text-sm" style={{ color: "#94a3b8" }}>{l.end_date}</td>
                       <td className="px-4 py-3 text-sm font-semibold" style={{ color: "#3b82f6" }}>

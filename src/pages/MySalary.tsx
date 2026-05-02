@@ -8,6 +8,7 @@ const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type PayrollRecord = {
   id: number;
+  employee_id?: string;
   employee_name: string;
   employee_position: string;
   site_name: string;
@@ -36,7 +37,7 @@ const MySalary = () => {
         const data = await res.json();
         // Filter only this employee's records
         const mine = Array.isArray(data)
-          ? data.filter((r: PayrollRecord) => r.employee_name === user.full_name)
+          ? data.filter((r: PayrollRecord) => r.employee_id === user.employee_id || r.employee_name === user.full_name)
           : [];
         // Sort by week descending
         mine.sort((a: PayrollRecord, b: PayrollRecord) => b.week_start.localeCompare(a.week_start));

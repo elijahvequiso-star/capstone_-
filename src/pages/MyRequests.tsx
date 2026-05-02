@@ -4,7 +4,6 @@ import API_BASE from "@/lib/config";
 
 const API_REQ = `${API_BASE}/requests/`;
 const API_EMP = `${API_BASE}/employees/`;
-const REQUEST_TYPES = ["Equipment", "Material", "Leave", "Budget", "Other"];
 
 type Request = {
   id: number;
@@ -29,26 +28,24 @@ const MyRequests = () => {
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ type: REQUEST_TYPES[0], date: "" });
+  const [form, setForm] = useState({ type: "", date: "" });
   const [saving, setSaving] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      // Get employee ID matching this user's full name
       const eRes = await fetch(API_EMP);
       const employees = await eRes.json();
       const me = Array.isArray(employees)
-        ? employees.find((e: any) => e.name === user.full_name)
+        ? employees.find((e: any) => e.employee_id === user.employee_id || e.name === user.full_name)
         : null;
       if (me) setEmployeeId(me.id);
 
-      // Get requests filtered by employee name
       const rRes = await fetch(API_REQ);
       const data = await rRes.json();
       setRequests(
         Array.isArray(data)
-          ? data.filter((r: Request) => r.employee_name === user.full_name)
+          ? data.filter((r: Request) => r.employee === me?.id || r.employee_name === user.full_name)
           : []
       );
     } catch { setRequests([]); }
@@ -73,7 +70,7 @@ const MyRequests = () => {
         }),
       });
       await fetchAll();
-      setForm({ type: REQUEST_TYPES[0], date: "" });
+      setForm({ type: "", date: "" });
       setShowModal(false);
     } catch { }
     setSaving(false);
@@ -133,7 +130,7 @@ const MyRequests = () => {
           <table className="w-full">
             <thead>
               <tr style={{ background: "#1e2535" }}>
-                {["Type", "Date", "Status", "Action"].map(h => (
+                {["Details", "Date", "Status", "Action"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-xs font-semibold" style={{ color: "#64748b" }}>{h}</th>
                 ))}
               </tr>
@@ -174,12 +171,11 @@ const MyRequests = () => {
             )}
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Request Type</label>
-                <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                  style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
-                  {REQUEST_TYPES.map(t => <option key={t}>{t}</option>)}
-                </select>
+                <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Request Details</label>
+                <textarea required value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
+                  placeholder="Describe your request in detail"
+                  className="min-h-28 w-full resize-y rounded-xl px-4 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "#0f1117", border: "1px solid #1e2535" }} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Date</label>

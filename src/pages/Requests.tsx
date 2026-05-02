@@ -6,6 +6,7 @@ const API_REQ = `${API_BASE}/requests/`;
 
 type Request = {
   id: number;
+  employee_id?: string;
   employee_name: string;
   employee_position: string;
   site_name: string;
@@ -110,7 +111,7 @@ const Requests = () => {
               <table className="w-full">
                 <thead>
                   <tr style={{ borderBottom: "1px solid #1e2535" }}>
-                    {["Employee", "Position", "Site", "Type", "Date", "Status", "Actions"].map(h => (
+                    {["Employee", "Position", "Site", "Details", "Date", "Status", "Actions"].map(h => (
                       <th key={h} className="px-5 py-2.5 text-left text-xs font-semibold" style={{ color: "#64748b" }}>{h}</th>
                     ))}
                   </tr>
@@ -118,14 +119,17 @@ const Requests = () => {
                 <tbody>
                   {reqs.map(r => (
                     <tr key={r.id} className="transition-colors hover:bg-white/5" style={{ borderTop: "1px solid #1e2535" }}>
-                      <td className="px-5 py-3 text-sm font-semibold text-white">{r.employee_name}</td>
+                      <td className="px-5 py-3">
+                        <p className="text-sm font-semibold text-white">{r.employee_name}</p>
+                        {r.employee_id && <p className="text-xs" style={{ color: "#64748b" }}>{r.employee_id}</p>}
+                      </td>
                       <td className="px-5 py-3 text-xs" style={{ color: "#64748b" }}>{r.employee_position}</td>
                       <td className="px-5 py-3">
                         <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ background: "rgba(255,127,80,0.15)", color: "#ff7f50" }}>
                           {r.site_name || "Unassigned"}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-sm" style={{ color: "#94a3b8" }}>{r.type}</td>
+                      <td className="max-w-xs whitespace-pre-wrap px-5 py-3 text-sm" style={{ color: "#94a3b8" }}>{r.type}</td>
                       <td className="px-5 py-3 text-sm" style={{ color: "#94a3b8" }}>{r.date}</td>
                       <td className="px-5 py-3">
                         <span className="rounded-full px-2.5 py-1 text-xs font-semibold" style={statusStyle(r.status)}>{r.status}</span>

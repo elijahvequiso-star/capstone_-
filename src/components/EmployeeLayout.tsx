@@ -4,9 +4,17 @@ import { NavLink } from "@/components/NavLink";
 import { useState, useEffect } from "react";
 import { messageStore, notificationStore } from "@/lib/notificationStore";
 
+const getDisplayName = (user: any) => {
+  const fullName = (user.full_name || "").trim();
+  const employeeId = (user.employee_id || user.username || "").trim();
+  if (fullName && fullName.toUpperCase() !== employeeId.toUpperCase()) return fullName;
+  return user.name || "Employee";
+};
+
 const EmployeeLayout = () => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const displayName = getDisplayName(user);
   const [showMsg, setShowMsg] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const [subject, setSubject] = useState("");
@@ -68,7 +76,7 @@ const EmployeeLayout = () => {
     { title: "My Salary", url: "/my-dashboard/salary", icon: DollarSign },
   ];
 
-  const initials = (user.full_name || user.username || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+  const initials = (displayName || user.username || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
     <div className="flex min-h-screen w-full" style={{ background: "#0f1117", color: "#e2e8f0" }}>
@@ -87,7 +95,7 @@ const EmployeeLayout = () => {
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{user.full_name || user.username}</p>
+            <p className="truncate text-sm font-semibold text-white">{displayName}</p>
             <p className="text-xs capitalize" style={{ color: "#ff7f50" }}>{user.role?.replace("_", " ")}</p>
           </div>
         </div>
@@ -120,7 +128,7 @@ const EmployeeLayout = () => {
         <header className="flex h-16 shrink-0 items-center justify-between px-6" style={{ background: "#161b27", borderBottom: "1px solid #1e2535" }}>
           <div>
             <p className="text-sm" style={{ color: "#64748b" }}>Welcome back,</p>
-            <p className="font-semibold text-white">{user.full_name || user.username}</p>
+            <p className="font-semibold text-white">{displayName}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full px-3 py-1 text-xs font-semibold capitalize" style={{ background: "rgba(255,127,80,0.15)", color: "#ff7f50" }}>

@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [sites, setSites] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [salaries, setSalaries] = useState<any[]>([]);
+  const [payrolls, setPayrolls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
@@ -22,22 +23,29 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [eRes, sRes, rRes, salRes] = await Promise.all([
+        const [eRes, sRes, rRes, salRes, payRes] = await Promise.all([
           fetch(`${API_BASE}/employees/`), fetch(`${API_BASE}/sites/`),
-          fetch(`${API_BASE}/requests/`), fetch(`${API_BASE}/salary/`),
+          fetch(`${API_BASE}/requests/`), fetch(`${API_BASE}/salary/`), fetch(`${API_BASE}/payroll/`),
         ]);
-        const [e, s, r, sal] = await Promise.all([eRes.json(), sRes.json(), rRes.json(), salRes.json()]);
+        const [e, s, r, sal, pay] = await Promise.all([eRes.json(), sRes.json(), rRes.json(), salRes.json(), payRes.json()]);
         setEmployees(Array.isArray(e) ? e : []);
         setSites(Array.isArray(s) ? s : []);
         setRequests(Array.isArray(r) ? r : []);
         setSalaries(Array.isArray(sal) ? sal : []);
+        setPayrolls(Array.isArray(pay) ? pay : []);
       } catch { }
-      setLoading(false);
+      // FIX 1: Was garbled as `setLoadi.computed_salaryfetchAll()` — split into
+      // setLoading(false) inside a finally block, then call fetchAll() correctly.
+      finally {
+        setLoading(false);
+      }
     };
     fetchAll();
   }, [location.key]); // re-fetch every time dashboard is navigated to
 
-  const totalSalary = salaries.reduce((s, e) => s + Number(e?.computed_salary ?? 0), 0);
+  const salarySource = salaries.length > 0 ? salaries : payrolls;
+  const salaryAmountKey = salaries.length > 0 ? "computed_salary" : "net_pay";
+  const totalSalary = salarySource.reduce((s, e) => s + Number(e?.[salaryAmountKey] ?? 0), 0);
   const pendingRequests = requests.filter(r => r.status === "Pending").length;
 
   // Employees per site (for bar chart)
@@ -45,16 +53,19 @@ const Dashboard = () => {
     name: s.name.length > 12 ? s.name.slice(0, 12) + "…" : s.name,
     employees: employees.filter(e => e.site === s.id).length,
   }));
-  // Add unassigned
+
+  // FIX 2: Was garbled as `empPerSite.computed_salaryned` — corrected to empPerSite.push(...)
   const unassigned = employees.filter(e => !e.site).length;
   if (unassigned > 0) empPerSite.push({ name: "Unassigned", employees: unassigned });
 
   // Salary per site (for pie chart)
-  const salPerSite = sites.map(s => {
-    const siteEmps = employees.filter(e => e.site === s.id).map(e => e.id);
-    const total = salaries.filter(sal => siteEmps.includes(sal.employee)).reduce((sum, sal) => sum + Number(sal?.computed_salary ?? 0), 0);
-    return { name: s.name, value: total };
-  }).filter(s => s.value > 0);
+  const salPerSite = sites.map(site => {
+    const siteEmps = employees.filter(e => e.site === site.id).map(e => e.id);
+    const total = salarySource
+      .filter(record => siteEmps.includes(record.employee) || record.site_name === site.name)
+      .reduce((sum, record) => sum + Number(record?.[salaryAmountKey] ?? 0), 0);
+    return { name: site.name, value: total };
+  }).filter(site => site.value > 0);
 
   const s = { background: "#161b27", border: "1px solid #1e2535", borderRadius: "16px", padding: "24px" };
 
@@ -155,8 +166,9 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {sites.map(site => {
               const siteEmps = employees.filter(e => e.site === site.id);
-              const siteSalTotal = salaries.filter(sal => siteEmps.map(e => e.id).includes(sal.employee))
-                .reduce((sum, sal) => sum + Number(sal.computed_salary), 0);
+              const siteSalTotal = salarySource
+                .filter(record => siteEmps.map(e => e.id).includes(record.employee) || record.site_name === site.name)
+                .reduce((sum, record) => sum + Number(record?.[salaryAmountKey] ?? 0), 0);
               const sitePending = requests.filter(r => r.site === site.id && r.status === "Pending").length;
               return (
                 <div key={site.id} className="rounded-xl p-4" style={{ background: "#0f1117", border: "1px solid #1e2535" }}>

@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import { Check, X, Trash2, Loader2, Plus, FileText } from "lucide-react";
+import { Check, X, Trash2, Loader2, FileText } from "lucide-react";
 import API_BASE from "@/lib/config";
 
 const API_REQ = `${API_BASE}/requests/`;
-const API_EMP = `${API_BASE}/employees/`;
-const API_SITES = `${API_BASE}/sites/`;
-const REQUEST_TYPES = ["General", "Equipment", "Material", "Budget", "Other"];
 
-type Request = { id: number; employee: number; employee_name: string; employee_position: string; site: number | null; site_name: string; type: string; date: string; status: "Pending" | "Approved" | "Rejected" };
-type Employee = { id: number; name: string; site_name: string };
-type Site = { id: number; name: string };
+type Request = {
+  id: number;
+  employee_name: string;
+  employee_position: string;
+  site_name: string;
+  type: string;
+  date: string;
+  status: "Pending" | "Approved" | "Rejected";
+};
 
 const statusStyle = (s: string) => {
   if (s === "Approved") return { background: "rgba(34,197,94,0.15)", color: "#22c55e" };
@@ -24,22 +27,16 @@ const Requests = () => {
   const canManage = user.role === "admin" || user.role === "hr";
 
   const [requests, setRequests] = useState<Request[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ employee: "", site: "", type: REQUEST_TYPES[0], date: "" });
-  const [saving, setSaving] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("All");
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [rRes, eRes, sRes] = await Promise.all([fetch(API_REQ), fetch(API_EMP), fetch(API_SITES)]);
-      setRequests(await rRes.json());
-      setEmployees(await eRes.json());
-      setSites(await sRes.json());
-    } catch { }
+      const res = await fetch(API_REQ);
+      const data = await res.json();
+      setRequests(Array.isArray(data) ? data : []);
+    } catch { setRequests([]); }
     setLoading(false);
   };
 
@@ -54,17 +51,6 @@ const Requests = () => {
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(r);
   });
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true);
-    await fetch(API_REQ, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ employee: form.employee, site: form.site || null, type: form.type, date: form.date, status: "Pending" }),
-    });
-    await fetchAll(); setSaving(false);
-    setForm({ employee: "", site: "", type: REQUEST_TYPES[0], date: "" });
-    setShowModal(false);
-  };
 
   const updateStatus = async (id: number, status: string) => {
     await fetch(`${API_REQ}${id}/`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
@@ -86,21 +72,16 @@ const Requests = () => {
           <h1 className="text-2xl font-bold text-white">Requests</h1>
           <p className="text-sm mt-1" style={{ color: "#64748b" }}>Grouped by site — {pending} pending</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
-          style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}>
-          <Plus className="h-4 w-4" /> Add Request
-        </button>
       </div>
 
-      {/* Stats + Filter */}
       <div className="flex flex-wrap items-center gap-3">
-        {["All", "Pending", "Approved", "Rejected"].map(s => (
-          <button key={s} onClick={() => setFilterStatus(s)}
+        {["All", "Pending", "Approved", "Rejected"].map((status) => (
+          <button key={status} onClick={() => setFilterStatus(status)}
             className="rounded-xl px-4 py-2 text-sm font-semibold transition-all"
-            style={filterStatus === s
+            style={filterStatus === status
               ? { background: "linear-gradient(135deg, #ff7f50, #ff5722)", color: "#fff" }
               : { background: "#1e2535", color: "#64748b" }}>
-            {s} {s === "All" ? `(${requests.length})` : s === "Pending" ? `(${requests.filter(r => r.status === "Pending").length})` : s === "Approved" ? `(${requests.filter(r => r.status === "Approved").length})` : `(${requests.filter(r => r.status === "Rejected").length})`}
+            {status} {status === "All" ? `(${requests.length})` : status === "Pending" ? `(${requests.filter(r => r.status === "Pending").length})` : status === "Approved" ? `(${requests.filter(r => r.status === "Approved").length})` : `(${requests.filter(r => r.status === "Rejected").length})`}
           </button>
         ))}
       </div>
@@ -167,55 +148,6 @@ const Requests = () => {
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.7)" }} onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl" style={{ background: "#161b27", border: "1px solid #1e2535" }} onClick={e => e.stopPropagation()}>
-            <h2 className="mb-5 font-bold text-white text-lg">Add Request</h2>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Employee</label>
-                <select required value={form.employee} onChange={e => setForm({ ...form, employee: e.target.value })}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                  style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
-                  <option value="">Select employee</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name} — {e.site_name || "Unassigned"}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Site</label>
-                <select value={form.site} onChange={e => setForm({ ...form, site: e.target.value })}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                  style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
-                  <option value="">— No site —</option>
-                  {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Request Type</label>
-                <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                  style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
-                  {REQUEST_TYPES.map(t => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium" style={{ color: "#94a3b8" }}>Date</label>
-                <input required type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
-                  className="w-full rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                  style={{ background: "#0f1117", border: "1px solid #1e2535" }} />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={saving} className="flex-1 rounded-xl py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-                  style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}>
-                  {saving ? "Saving..." : "Submit Request"}
-                </button>
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 rounded-xl py-2.5 text-sm font-semibold"
-                  style={{ border: "1px solid #1e2535", color: "#64748b" }}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

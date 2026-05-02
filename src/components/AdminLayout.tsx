@@ -9,6 +9,8 @@ const AdminLayout = () => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const navigate = useNavigate();
   const isAdmin = user.role === "admin";
+  const isHR = user.role === "hr";
+  const isAdminOrHR = isAdmin || isHR;
 
   const [showNotif, setShowNotif] = useState(false);
   const [showMsg, setShowMsg] = useState(false);
@@ -26,11 +28,11 @@ const AdminLayout = () => {
     setNotifications(notificationStore.getForUser(user.username, user.role));
     setUnreadNotif(notificationStore.unreadCount(user.username, user.role));
 
-    // Build thread list from all messages involving admin
     const all = messageStore.getAll();
-    const adminMessages = all.filter(m => m.to === user.username || m.from === user.username);
+    const adminMessages = all.filter(m =>
+      m.to === user.username || m.from === user.username || (isAdminOrHR && m.to === "admin")
+    );
 
-    // Group by the other party
     const threadMap: Record<string, any[]> = {};
     adminMessages.forEach(m => {
       const other = m.from === user.username ? m.to : m.from;
@@ -40,7 +42,7 @@ const AdminLayout = () => {
 
     const threadList = Object.entries(threadMap).map(([username, msgs]) => {
       const sorted = msgs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-      const unread = msgs.filter(m => m.to === user.username && !m.read).length;
+      const unread = msgs.filter(m => (m.to === user.username || (isAdminOrHR && m.to === "admin")) && !m.read).length;
       return { username, lastMsg: sorted[0].text.slice(0, 40), unread, time: sorted[0].timestamp };
     }).sort((a, b) => b.time.localeCompare(a.time));
 
@@ -48,10 +50,12 @@ const AdminLayout = () => {
     setUnreadMsg(threadList.reduce((s, t) => s + t.unread, 0));
 
     if (activeThread) {
-      const conv = messageStore.getConversation(user.username, activeThread);
+      const conv = all.filter(m =>
+        (m.from === activeThread && (m.to === user.username || (isAdminOrHR && m.to === "admin"))) ||
+        (m.from === user.username && m.to === activeThread)
+      ).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
       setConversation(conv);
-      // Mark messages from this thread as read
-      all.filter(m => m.from === activeThread && m.to === user.username && !m.read)
+      all.filter(m => (m.from === activeThread && (m.to === user.username || (isAdminOrHR && m.to === "admin")) && !m.read))
         .forEach(m => messageStore.markRead(m.id));
     }
   };
@@ -64,11 +68,14 @@ const AdminLayout = () => {
 
   const openThread = (username: string) => {
     setActiveThread(username);
-    const conv = messageStore.getConversation(user.username, username);
+    const all = messageStore.getAll();
+    const conv = all.filter(m =>
+      (m.from === username && (m.to === user.username || (isAdminOrHR && m.to === "admin"))) ||
+      (m.from === user.username && m.to === username)
+    ).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
     setConversation(conv);
-    // Mark as read
     messageStore.getAll()
-      .filter(m => m.from === username && m.to === user.username && !m.read)
+      .filter(m => (m.from === username && (m.to === user.username || (isAdminOrHR && m.to === "admin")) && !m.read))
       .forEach(m => messageStore.markRead(m.id));
     refreshAll();
   };

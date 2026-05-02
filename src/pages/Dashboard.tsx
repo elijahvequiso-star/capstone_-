@@ -37,7 +37,7 @@ const Dashboard = () => {
     fetchAll();
   }, [location.key]); // re-fetch every time dashboard is navigated to
 
-  const totalSalary = salaries.reduce((s, e) => s + Number(e.computed_salary), 0);
+  const totalSalary = salaries.reduce((s, e) => s + Number(e?.computed_salary ?? 0), 0);
   const pendingRequests = requests.filter(r => r.status === "Pending").length;
 
   // Employees per site (for bar chart)
@@ -52,7 +52,7 @@ const Dashboard = () => {
   // Salary per site (for pie chart)
   const salPerSite = sites.map(s => {
     const siteEmps = employees.filter(e => e.site === s.id).map(e => e.id);
-    const total = salaries.filter(sal => siteEmps.includes(sal.employee)).reduce((sum, sal) => sum + Number(sal.computed_salary), 0);
+    const total = salaries.filter(sal => siteEmps.includes(sal.employee)).reduce((sum, sal) => sum + Number(sal?.computed_salary ?? 0), 0);
     return { name: s.name, value: total };
   }).filter(s => s.value > 0);
 

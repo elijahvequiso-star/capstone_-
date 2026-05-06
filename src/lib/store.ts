@@ -1,4 +1,6 @@
-const API = "http://localhost:8000/api";
+import API_BASE from "@/lib/config";
+
+const API = API_BASE;
 
 // localStorage keys
 const KEYS = {

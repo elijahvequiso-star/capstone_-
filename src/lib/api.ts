@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+import API_BASE from "@/lib/config";
+
+const API_BASE_URL = API_BASE;
 
 export const api = {
   employees: {

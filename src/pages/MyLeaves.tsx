@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Trash2, Loader2, Plus, CalendarDays } from "lucide-react";
 import API_BASE from "@/lib/config";
+import { isSameEmployee, mergeEmployeeProfile } from "@/lib/employeeIdentity";
 
 const API_LEAVES = `${API_BASE}/leaves/`;
 const API_EMP = `${API_BASE}/employees/`;
@@ -38,9 +39,12 @@ const MyLeaves = () => {
       const eRes = await fetch(API_EMP);
       const employees = await eRes.json();
       const me = Array.isArray(employees)
-        ? employees.find((e: any) => e.employee_id === user.employee_id || e.name === user.full_name)
+        ? employees.find((e: any) => isSameEmployee(e, user))
         : null;
-      if (me) setEmployeeId(me.id);
+      if (me) {
+        setEmployeeId(me.id);
+        localStorage.setItem("user", JSON.stringify(mergeEmployeeProfile(user, me)));
+      }
 
       const lRes = await fetch(API_LEAVES);
       const data = await lRes.json();

@@ -3,6 +3,8 @@ import { FileText, CalendarDays, DollarSign, LogOut, HardHat, LayoutDashboard, M
 import { NavLink } from "@/components/NavLink";
 import { useState, useEffect } from "react";
 import { messageStore, notificationStore } from "@/lib/notificationStore";
+import API_BASE from "@/lib/config";
+import { getStoredEmployeeId, isSameEmployee, mergeEmployeeProfile } from "@/lib/employeeIdentity";
 
 const getDisplayName = (user: any) => {
   const fullName = (user.full_name || "").trim();
@@ -13,8 +15,9 @@ const getDisplayName = (user: any) => {
 
 const EmployeeLayout = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
   const displayName = getDisplayName(user);
+  const displayEmployeeId = getStoredEmployeeId(user);
   const [showMsg, setShowMsg] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const [subject, setSubject] = useState("");
@@ -47,6 +50,25 @@ const EmployeeLayout = () => {
     refreshMessages();
     const interval = setInterval(refreshMessages, 3000);
     return () => clearInterval(interval);
+  }, [user.username, user.role]);
+
+  useEffect(() => {
+    const hydrateEmployeeProfile = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/employees/`);
+        const employees = await res.json();
+        const employee = Array.isArray(employees)
+          ? employees.find((item: any) => isSameEmployee(item, user))
+          : null;
+        if (!employee) return;
+
+        const mergedUser = mergeEmployeeProfile(user, employee);
+        localStorage.setItem("user", JSON.stringify(mergedUser));
+        setUser(mergedUser);
+      } catch { }
+    };
+
+    hydrateEmployeeProfile();
   }, []);
 
   const handleSend = (e: React.FormEvent) => {
@@ -97,6 +119,7 @@ const EmployeeLayout = () => {
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">{displayName}</p>
             <p className="text-xs capitalize" style={{ color: "#ff7f50" }}>{user.role?.replace("_", " ")}</p>
+            <p className="truncate text-xs" style={{ color: "#94a3b8" }}>ID: {displayEmployeeId || "-"}</p>
           </div>
         </div>
 
@@ -129,6 +152,7 @@ const EmployeeLayout = () => {
           <div>
             <p className="text-sm" style={{ color: "#64748b" }}>Welcome back,</p>
             <p className="font-semibold text-white">{displayName}</p>
+            <p className="text-xs" style={{ color: "#64748b" }}>Employee ID: {displayEmployeeId || "-"}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full px-3 py-1 text-xs font-semibold capitalize" style={{ background: "rgba(255,127,80,0.15)", color: "#ff7f50" }}>

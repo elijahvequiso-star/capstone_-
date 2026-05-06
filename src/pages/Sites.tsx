@@ -32,6 +32,10 @@ const Toast = ({ message, onClose }: { message: string; onClose: () => void }) =
 
 const Sites = () => {
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isAdmin = user.role === "admin";
+  const canAdd = !isAdmin;
+  
   const [sites, setSites] = useState<Site[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,12 +111,14 @@ const Sites = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Construction Sites</h1>
-          <p className="text-sm mt-1" style={{ color: "#64748b" }}>Manage all construction sites and their teams</p>
+          <p className="text-sm mt-1" style={{ color: "#64748b" }}>{isAdmin ? "View all construction sites and their teams" : "Manage all construction sites and their teams"}</p>
         </div>
-        <button onClick={openAdd} className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
-          style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}>
-          <Plus className="h-4 w-4" /> Add Site
-        </button>
+        {canAdd && (
+          <button onClick={openAdd} className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
+            style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}>
+            <Plus className="h-4 w-4" /> Add Site
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -138,9 +144,11 @@ const Sites = () => {
       ) : sites.length === 0 ? (
         <div className="rounded-2xl py-16 text-center" style={card}>
           <MapPin className="h-10 w-10 mx-auto mb-3" style={{ color: "#1e2535" }} />
-          <p className="mb-4" style={{ color: "#475569" }}>No sites yet. Add your first construction site.</p>
-          <button onClick={openAdd} className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
-            style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}>+ Add First Site</button>
+          <p className="mb-4" style={{ color: "#475569" }}>{canAdd ? "No sites yet. Add your first construction site." : "No sites available."}</p>
+          {canAdd && (
+            <button onClick={openAdd} className="rounded-xl px-5 py-2.5 text-sm font-semibold text-white"
+              style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}>+ Add First Site</button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -182,16 +190,20 @@ const Sites = () => {
                       View Team
                       {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
                     </button>
-                    <button onClick={() => openEdit(site)}
-                      className="rounded-xl p-2 transition-all hover:brightness-110"
-                      style={{ background: "rgba(234,179,8,0.15)", color: "#eab308" }} title="Edit">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => handleDelete(site)}
-                      className="rounded-xl p-2 transition-all hover:brightness-110"
-                      style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444" }} title="Delete">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {!isAdmin && (
+                      <>
+                        <button onClick={() => openEdit(site)}
+                          className="rounded-xl p-2 transition-all hover:brightness-110"
+                          style={{ background: "rgba(234,179,8,0.15)", color: "#eab308" }} title="Edit">
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDelete(site)}
+                          className="rounded-xl p-2 transition-all hover:brightness-110"
+                          style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444" }} title="Delete">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

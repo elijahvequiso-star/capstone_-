@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Printer, Loader2, DollarSign, Clock, TrendingUp } from "lucide-react";
 import API_BASE from "@/lib/config";
+import { getStoredEmployeeId, normalizeEmployeeId } from "@/lib/employeeIdentity";
 
 const API_PAYROLL = `${API_BASE}/payroll/`;
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -36,8 +37,13 @@ const MySalary = () => {
         const res = await fetch(API_PAYROLL);
         const data = await res.json();
         // Filter only this employee's records
+        const myEmployeeId = getStoredEmployeeId(user);
+        const userFullName = String(user.full_name || user.name || "").trim().toUpperCase();
         const mine = Array.isArray(data)
-          ? data.filter((r: PayrollRecord) => r.employee_id === user.employee_id || r.employee_name === user.full_name)
+          ? data.filter((r: PayrollRecord) =>
+              normalizeEmployeeId(r.employee_id) === myEmployeeId ||
+              String(r.employee_name || "").trim().toUpperCase() === userFullName
+            )
           : [];
         // Sort by week descending
         mine.sort((a: PayrollRecord, b: PayrollRecord) => b.week_start.localeCompare(a.week_start));

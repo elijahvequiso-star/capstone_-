@@ -57,6 +57,10 @@ const getApiError = (data: any, fallback: string) => {
 };
 
 const Employees = () => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isAdmin = user.role === "admin";
+  const canAdd = !isAdmin;
+  
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
@@ -194,16 +198,18 @@ const Employees = () => {
         <div>
           <h1 className="text-2xl font-bold text-white">Employees</h1>
           <p className="text-sm mt-1" style={{ color: "#64748b" }}>
-            Grouped by construction site team
+            {isAdmin ? "View all construction site team members" : "Grouped by construction site team"}
           </p>
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
-          style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}
-        >
-          <Plus className="h-4 w-4" /> Add Employee
-        </button>
+        {canAdd && (
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 transition-all"
+            style={{ background: "linear-gradient(135deg, #ff7f50, #ff5722)" }}
+          >
+            <Plus className="h-4 w-4" /> Add Employee
+          </button>
+        )}
       </div>
 
       {/* Summary */}
@@ -364,20 +370,24 @@ const Employees = () => {
                             </td>
                             <td className="px-5 py-3">
                               <div className="flex gap-2">
-                                <button
-                                  onClick={() => openEdit(emp)}
-                                  className="rounded-lg p-1.5 transition-colors hover:bg-white/10"
-                                  style={{ color: "#3b82f6" }}
-                                >
-                                  <Edit className="h-3.5 w-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(emp.id)}
-                                  className="rounded-lg p-1.5 transition-colors hover:bg-red-500/10"
-                                  style={{ color: "#ef4444" }}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                {!isAdmin && (
+                                  <>
+                                    <button
+                                      onClick={() => openEdit(emp)}
+                                      className="rounded-lg p-1.5 transition-colors hover:bg-white/10"
+                                      style={{ color: "#3b82f6" }}
+                                    >
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(emp.id)}
+                                      className="rounded-lg p-1.5 transition-colors hover:bg-red-500/10"
+                                      style={{ color: "#ef4444" }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </td>
                           </tr>

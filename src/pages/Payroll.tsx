@@ -16,6 +16,8 @@ type PayrollRecord = {
   employee_name: string;
   employee_position: string;
   site_name: string;
+  site_id?: number | null;
+  site_location?: string;
   week_start: string;
   week_end?: string;
   hourly_rate: number;
@@ -27,7 +29,7 @@ type PayrollRecord = {
 };
 
 type Employee = { id: number; employee_id?: string; name: string; full_name?: string; position: string; site: number | null; site_name: string; status?: string };
-type Site = { id: number; name: string; status: string };
+type Site = { id: number; name: string; location: string; status: string };
 type SalaryRecord = { id: number; employee: number; hourly_rate: number; created_at?: string; updated_at?: string };
 type BulkPayrollRow = {
   employee: Employee;
@@ -135,12 +137,12 @@ const Payroll = () => {
   // Filter by week
   const filtered = weekFilter ? payrolls.filter(p => p.week_start === weekFilter) : payrolls;
 
-  // Group by site
+  // Group by site ID (to keep different sites with same name separate)
   const grouped: Record<string, PayrollRecord[]> = {};
   filtered.forEach(p => {
-    const key = p.site_name || "Unassigned";
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(p);
+    const siteId = p.site_id ?? "Unassigned";
+    if (!grouped[siteId]) grouped[siteId] = [];
+    grouped[siteId].push(p);
   });
 
   // Unique weeks for filter
@@ -238,6 +240,12 @@ const Payroll = () => {
     setPayrolls(prev => prev.filter(p => p.id !== id));
   };
 
+  // Helper: Get site location by name
+  const getSiteLocation = (siteName: string) => {
+    const site = sites.find(s => s.name === siteName);
+    return site?.location || "No location";
+  };
+
   const totalNet = filtered.reduce((s, p) => s + Number(p.net_pay), 0);
   const totalHours = filtered.reduce((s, p) => s + Number(p.total_hours), 0);
 
@@ -303,18 +311,22 @@ const Payroll = () => {
         </div>
       ) : (
         <div className="space-y-5">
-          {Object.entries(grouped).map(([siteName, records]) => {
+          {Object.entries(grouped).map(([siteId, records]) => {
             const siteNet = records.reduce((s, r) => s + Number(r.net_pay), 0);
-            const isCollapsed = collapsed[siteName];
+            const isCollapsed = collapsed[siteId];
+            const siteName = records[0]?.site_name || "Unassigned";
+            const siteLocation = records[0]?.site_location || "No location";
             return (
-              <div key={siteName} className="rounded-2xl overflow-hidden" style={card}>
+              <div key={siteId} className="rounded-2xl overflow-hidden" style={card}>
                 {/* Site header */}
-                <button onClick={() => setCollapsed(p => ({ ...p, [siteName]: !p[siteName] }))}
+                <button onClick={() => setCollapsed(p => ({ ...p, [siteId]: !p[siteId] }))}
                   className="flex w-full items-center justify-between px-5 py-3.5 transition-colors hover:bg-white/5"
                   style={{ background: "#1e2535" }}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <Clock className="h-4 w-4" style={{ color: "#ff7f50" }} />
-                    <p className="font-semibold text-white">{siteName}</p>
+                    <div className="flex flex-col gap-0.5">
+                      <p className="font-semibold text-white">{siteName} ({siteLocation})</p>
+                    </div>
                     <span className="text-xs" style={{ color: "#64748b" }}>{records.length} employee{records.length !== 1 ? "s" : ""}</span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -397,7 +409,7 @@ const Payroll = () => {
                       className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
                       style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
                       <option value="">Select site</option>
-                      {sites.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
+                      {sites.map(site => <option key={site.id} value={site.id}>{site.name} ({site.location})</option>)}
                     </select>
                   </div>
                   <div>

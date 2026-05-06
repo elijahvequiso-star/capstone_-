@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FileText, CalendarDays, DollarSign, Clock, ChevronRight, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API_BASE from "@/lib/config";
+import { getStoredEmployeeId, isSameEmployee, mergeEmployeeProfile, normalizeEmployeeId } from "@/lib/employeeIdentity";
 
 const card = {
   background: "#161b27",
@@ -45,22 +46,18 @@ const MyDashboard = () => {
         const employeesRes = await fetch(`${API_BASE}/employees/`);
         const employees = await employeesRes.json();
         const employee = Array.isArray(employees)
-          ? employees.find((item: any) => item.employee_id === user.employee_id)
+          ? employees.find((item: any) => isSameEmployee(item, user))
           : null;
         if (employee) {
-          setEmployeeProfile({
-            ...user,
-            full_name: employee.full_name || employee.name,
-            employee_id: employee.employee_id,
-            role: employee.role,
-            position: employee.position,
-            status: employee.status,
-          });
+          const mergedUser = mergeEmployeeProfile(user, employee);
+          localStorage.setItem("user", JSON.stringify(mergedUser));
+          setEmployeeProfile(mergedUser);
         }
 
-        const requests = Array.isArray(allRequests) ? allRequests.filter((r: any) => r.employee_id === user.employee_id) : [];
-        const leaves = Array.isArray(allLeaves) ? allLeaves.filter((l: any) => l.employee_id === user.employee_id) : [];
-        const payroll = Array.isArray(allPayroll) ? allPayroll.filter((p: any) => p.employee_id === user.employee_id) : [];
+        const myEmployeeId = normalizeEmployeeId(employee?.employee_id || getStoredEmployeeId(user));
+        const requests = Array.isArray(allRequests) ? allRequests.filter((r: any) => normalizeEmployeeId(r.employee_id) === myEmployeeId) : [];
+        const leaves = Array.isArray(allLeaves) ? allLeaves.filter((l: any) => normalizeEmployeeId(l.employee_id) === myEmployeeId) : [];
+        const payroll = Array.isArray(allPayroll) ? allPayroll.filter((p: any) => normalizeEmployeeId(p.employee_id) === myEmployeeId) : [];
 
         // Latest week net pay as current salary
         const latestPay = payroll.length > 0

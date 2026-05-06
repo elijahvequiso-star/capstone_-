@@ -3,8 +3,15 @@ import { Users, FileText, DollarSign, MapPin, Clock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { useNavigate, useLocation } from "react-router-dom";
 import API_BASE from "@/lib/config";
+import { fetchList } from "@/lib/apiData";
 
 const COLORS = ["#ff7f50", "#3b82f6", "#22c55e", "#a855f7", "#eab308", "#ef4444", "#06b6d4"];
+
+const recordBelongsToSite = (record: any, site: any, employeeIds: number[]) => {
+  if (record.site_id !== undefined && record.site_id !== null) return Number(record.site_id) === Number(site.id);
+  if (employeeIds.includes(record.employee)) return true;
+  return record.site_name === site.name && record.site_location === site.location;
+};
 
 const Dashboard = () => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -16,27 +23,36 @@ const Dashboard = () => {
   const [salaries, setSalaries] = useState<any[]>([]);
   const [payrolls, setPayrolls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     const fetchAll = async () => {
+      setLoading(true);
+      setLoadError("");
       try {
-        const [eRes, sRes, rRes, salRes, payRes] = await Promise.all([
-          fetch(`${API_BASE}/employees/`), fetch(`${API_BASE}/sites/`),
-          fetch(`${API_BASE}/requests/`), fetch(`${API_BASE}/salary/`), fetch(`${API_BASE}/payroll/`),
+        const [e, s, r, sal, pay] = await Promise.all([
+          fetchList<any>(`${API_BASE}/employees/`),
+          fetchList<any>(`${API_BASE}/sites/`),
+          fetchList<any>(`${API_BASE}/requests/`),
+          fetchList<any>(`${API_BASE}/salary/`),
+          fetchList<any>(`${API_BASE}/payroll/`),
         ]);
-        const [e, s, r, sal, pay] = await Promise.all([eRes.json(), sRes.json(), rRes.json(), salRes.json(), payRes.json()]);
-        setEmployees(Array.isArray(e) ? e : []);
-        setSites(Array.isArray(s) ? s : []);
-        setRequests(Array.isArray(r) ? r : []);
-        setSalaries(Array.isArray(sal) ? sal : []);
-        setPayrolls(Array.isArray(pay) ? pay : []);
-      } catch { }
-      // FIX 1: Was garbled as `setLoadi.computed_salaryfetchAll()` — split into
-      // setLoading(false) inside a finally block, then call fetchAll() correctly.
-      finally {
+        setEmployees(e);
+        setSites(s);
+        setRequests(r);
+        setSalaries(sal);
+        setPayrolls(pay);
+      } catch (error) {
+        setEmployees([]);
+        setSites([]);
+        setRequests([]);
+        setSalaries([]);
+        setPayrolls([]);
+        setLoadError(error instanceof Error ? error.message : "Unable to load dashboard data.");
+      } finally {
         setLoading(false);
       }
     };
@@ -62,7 +78,7 @@ const Dashboard = () => {
   const salPerSite = sites.map(site => {
     const siteEmps = employees.filter(e => e.site === site.id).map(e => e.id);
     const total = salarySource
-      .filter(record => siteEmps.includes(record.employee) || record.site_name === site.name)
+      .filter(record => recordBelongsToSite(record, site, siteEmps))
       .reduce((sum, record) => sum + Number(record?.[salaryAmountKey] ?? 0), 0);
     return { name: site.name, value: total };
   }).filter(site => site.value > 0);
@@ -98,6 +114,12 @@ const Dashboard = () => {
       </div>
 
       {/* Summary Cards */}
+      {loadError && (
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)", color: "#fca5a5" }}>
+          {loadError}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: "Total Employees", value: employees.length, icon: Users, color: "#3b82f6", bg: "rgba(59,130,246,0.15)" },
@@ -166,8 +188,9 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {sites.map(site => {
               const siteEmps = employees.filter(e => e.site === site.id);
+              const siteEmpIds = siteEmps.map(e => e.id);
               const siteSalTotal = salarySource
-                .filter(record => siteEmps.map(e => e.id).includes(record.employee) || record.site_name === site.name)
+                .filter(record => recordBelongsToSite(record, site, siteEmpIds))
                 .reduce((sum, record) => sum + Number(record?.[salaryAmountKey] ?? 0), 0);
               const sitePending = requests.filter(r => r.site === site.id && r.status === "Pending").length;
               return (

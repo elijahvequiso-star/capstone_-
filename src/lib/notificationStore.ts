@@ -13,8 +13,10 @@ export type Notification = {
 export type Message = {
   id: string;
   from: string;
+  from_name?: string;
   from_role: string;
   to: string;
+  to_name?: string;
   to_role: string;
   text: string;
   timestamp: string;
@@ -67,8 +69,9 @@ export const messageStore = {
     list.push({ ...msg, id: Date.now().toString(), timestamp: new Date().toISOString(), read: false });
     save("vequiso_messages", list);
     // Also create a notification for recipient
+    const senderName = msg.from_name || msg.from;
     notificationStore.add({
-      title: `New message from ${msg.from}`,
+      title: `New message from ${senderName}`,
       message: msg.text.slice(0, 60),
       type: "info",
       for_role: msg.to_role,

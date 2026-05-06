@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Edit, Trash2, Loader2, ChevronDown, ChevronRight, Users, MapPin, Plus, AlertCircle } from "lucide-react";
 import API_BASE from "@/lib/config";
+import { fetchList } from "@/lib/apiData";
 
 const API_EMP = `${API_BASE}/employees/`;
 const API_SITES = `${API_BASE}/sites/`;
@@ -19,8 +20,9 @@ type Employee = {
   status: "PENDING" | "ACTIVE";
   site: number | null;
   site_name: string;
+  site_location?: string;
 };
-type Site = { id: number; name: string; status: string };
+type Site = { id: number; name: string; location: string; status: string };
 
 const emptyForm = {
   employee_id: "",
@@ -43,6 +45,12 @@ const ROLE_OPTIONS = [
 const card = { background: "#161b27", border: "1px solid #1e2535", borderRadius: "16px" };
 
 const normalizeEmployeeId = (value: string) => value.trim().toUpperCase();
+
+const getEmployeeIdLabel = (employee: Pick<Employee, "id" | "employee_id">) =>
+  employee.employee_id?.trim() || "Not set";
+
+const getEmployeeSiteKey = (employee: Employee) =>
+  employee.site ? `site-${employee.site}` : "unassigned";
 
 const getApiError = (data: any, fallback: string) => {
   if (!data) return fallback;
@@ -70,14 +78,23 @@ const Employees = () => {
   const [saving, setSaving] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [empIdError, setEmpIdError] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const fetchAll = async () => {
     setLoading(true);
+    setLoadError("");
     try {
-      const [eRes, sRes] = await Promise.all([fetch(API_EMP), fetch(API_SITES)]);
-      setEmployees(await eRes.json());
-      setSites(await sRes.json());
-    } catch {}
+      const [employeeData, siteData] = await Promise.all([
+        fetchList<Employee>(API_EMP),
+        fetchList<Site>(API_SITES),
+      ]);
+      setEmployees(employeeData);
+      setSites(siteData);
+    } catch (error) {
+      setEmployees([]);
+      setSites([]);
+      setLoadError(error instanceof Error ? error.message : "Unable to load employees and sites.");
+    }
     setLoading(false);
   };
 
@@ -88,7 +105,7 @@ const Employees = () => {
   // Group employees by site
   const grouped: Record<string, Employee[]> = {};
   employees.forEach((emp) => {
-    const key = emp.site_name || "Unassigned";
+    const key = getEmployeeSiteKey(emp);
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(emp);
   });
@@ -189,7 +206,7 @@ const Employees = () => {
 
   const siteStatusMap: Record<string, string> = {};
   sites.forEach((s) => {
-    siteStatusMap[s.name] = s.status;
+    siteStatusMap[`site-${s.id}`] = s.status;
   });
 
   return (
@@ -213,6 +230,12 @@ const Employees = () => {
       </div>
 
       {/* Summary */}
+      {loadError && (
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)", color: "#fca5a5" }}>
+          {loadError}
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-2xl p-4" style={card}>
           <p className="text-xs mb-1" style={{ color: "#64748b" }}>Total Employees</p>
@@ -227,7 +250,7 @@ const Employees = () => {
         <div className="rounded-2xl p-4" style={card}>
           <p className="text-xs mb-1" style={{ color: "#64748b" }}>Sites</p>
           <p className="text-2xl font-bold" style={{ color: "#ff7f50" }}>
-            {Object.keys(grouped).filter((k) => k !== "Unassigned").length}
+            {Object.keys(grouped).filter((k) => k !== "unassigned").length}
           </p>
         </div>
       </div>
@@ -246,18 +269,21 @@ const Employees = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {Object.entries(grouped).map(([siteName, emps]) => {
-            const isCollapsed = collapsed[siteName];
-            const siteStatus = siteStatusMap[siteName];
+          {Object.entries(grouped).map(([siteKey, emps]) => {
+            const isCollapsed = collapsed[siteKey];
+            const siteStatus = siteStatusMap[siteKey];
+            const firstEmployee = emps[0];
+            const siteName = firstEmployee?.site_name || "Unassigned";
+            const siteLocation = firstEmployee?.site_location;
             return (
               <div
-                key={siteName}
+                key={siteKey}
                 className="rounded-2xl overflow-hidden"
                 style={card}
               >
                 {/* Site header — collapsible */}
                 <button
-                  onClick={() => toggleCollapse(siteName)}
+                  onClick={() => toggleCollapse(siteKey)}
                   className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-white/5"
                 >
                   <div className="flex items-center gap-3">
@@ -270,7 +296,7 @@ const Employees = () => {
                     <div className="text-left">
                       <p className="font-semibold text-white">{siteName}</p>
                       <p className="text-xs" style={{ color: "#64748b" }}>
-                        {emps.length} employee{emps.length !== 1 ? "s" : ""}
+                        {siteLocation ? `${siteLocation} - ` : ""}{emps.length} employee{emps.length !== 1 ? "s" : ""}
                       </p>
                     </div>
                     {siteStatus && (
@@ -287,7 +313,7 @@ const Employees = () => {
                         {siteStatus}
                       </span>
                     )}
-                    {siteName === "Unassigned" && (
+                    {siteKey === "unassigned" && (
                       <span
                         className="rounded-full px-2.5 py-1 text-xs font-semibold ml-2"
                         style={{ background: "rgba(100,116,139,0.15)", color: "#64748b" }}
@@ -335,7 +361,7 @@ const Employees = () => {
                                 className="rounded-lg px-2.5 py-1 text-xs font-mono font-semibold"
                                 style={{ background: "rgba(255,127,80,0.12)", color: "#ff7f50" }}
                               >
-                                {emp.employee_id || "—"}
+                                {getEmployeeIdLabel(emp)}
                               </span>
                             </td>
                             <td className="px-5 py-3 text-sm font-medium text-white">
@@ -512,7 +538,7 @@ const Employees = () => {
                   <option value="">— Unassigned —</option>
                   {sites.map((s) => (
                     <option key={s.id} value={s.id} disabled={s.status === "Completed"}>
-                      {s.name} {s.status === "Completed" ? "(Completed)" : ""}
+                      {s.name} ({s.location || "No location"}) {s.status === "Completed" ? "- Completed" : ""}
                     </option>
                   ))}
                 </select>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Printer, Edit, Trash2, Loader2, Plus, DollarSign, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import API_BASE from "@/lib/config";
+import { fetchList } from "@/lib/apiData";
 
 const API_PAYROLL = `${API_BASE}/payroll/`;
 const API_EMPLOYEES = `${API_BASE}/employees/`;
@@ -28,7 +29,7 @@ type PayrollRecord = {
   net_pay: number;
 };
 
-type Employee = { id: number; employee_id?: string; name: string; full_name?: string; position: string; site: number | null; site_name: string; status?: string };
+type Employee = { id: number; employee_id?: string; name: string; full_name?: string; position: string; site: number | null; site_name: string; site_location?: string; status?: string };
 type Site = { id: number; name: string; location: string; status: string };
 type SalaryRecord = { id: number; employee: number; hourly_rate: number; created_at?: string; updated_at?: string };
 type BulkPayrollRow = {
@@ -89,6 +90,17 @@ const getRowTotals = (row: BulkPayrollRow) => {
   return { totalHours, gross, net };
 };
 
+const getEmployeeIdLabel = (employee: Pick<Employee, "id" | "employee_id">) =>
+  employee.employee_id?.trim() || "Not set";
+
+const getPayrollEmployeeIdLabel = (record: Pick<PayrollRecord, "employee" | "employee_id">) =>
+  record.employee_id?.trim() || "Not set";
+
+const getPayrollSiteKey = (record: PayrollRecord) => {
+  if (record.site_id !== undefined && record.site_id !== null) return `site-${record.site_id}`;
+  return `${record.site_name || "Unassigned"}|${record.site_location || ""}`;
+};
+
 const Payroll = () => {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const canManage = user.role === "hr";
@@ -108,26 +120,33 @@ const Payroll = () => {
   const [payslip, setPayslip] = useState<PayrollRecord | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [weekFilter, setWeekFilter] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const fetchAll = async () => {
     setLoading(true);
+    setLoadError("");
     try {
-      const [pRes, eRes, siteRes, salaryRes] = await Promise.all([fetch(API_PAYROLL), fetch(API_EMPLOYEES), fetch(API_SITES), fetch(API_SALARY)]);
-      setPayrolls(await pRes.json());
-      const employeeData = await eRes.json();
-      const salaryData = await salaryRes.json();
+      const [payrollData, employeeData, siteData, salaryData] = await Promise.all([
+        fetchList<PayrollRecord>(API_PAYROLL),
+        fetchList<Employee>(API_EMPLOYEES),
+        fetchList<Site>(API_SITES),
+        fetchList<SalaryRecord>(API_SALARY),
+      ]);
+      setPayrolls(payrollData);
       setEmployees(employeeData);
-      setSites(await siteRes.json());
-      setSalaryRates(getRateMap(Array.isArray(salaryData) ? salaryData : []));
-    } catch { }
+      setSites(siteData);
+      setSalaryRates(getRateMap(salaryData));
+    } catch (error) {
+      setPayrolls([]);
+      setEmployees([]);
+      setSites([]);
+      setSalaryRates({});
+      setLoadError(error instanceof Error ? error.message : "Unable to load payroll data.");
+    }
     setLoading(false);
   };
 
   useEffect(() => { fetchAll(); }, []);
-
-  const selectedSiteEmployees = selectedSite
-    ? employees.filter((employee) => String(employee.site || "") === selectedSite)
-    : [];
 
   // Compute live preview
   const previewHours = DAYS.reduce((s, d) => s + Number((form as any)[d] || 0), 0);
@@ -137,12 +156,12 @@ const Payroll = () => {
   // Filter by week
   const filtered = weekFilter ? payrolls.filter(p => p.week_start === weekFilter) : payrolls;
 
-  // Group by site ID (to keep different sites with same name separate)
+  // Group by site. Newer APIs send site_id; older deployed APIs may only send site_name.
   const grouped: Record<string, PayrollRecord[]> = {};
   filtered.forEach(p => {
-    const siteId = p.site_id ?? "Unassigned";
-    if (!grouped[siteId]) grouped[siteId] = [];
-    grouped[siteId].push(p);
+    const siteKey = getPayrollSiteKey(p);
+    if (!grouped[siteKey]) grouped[siteKey] = [];
+    grouped[siteKey].push(p);
   });
 
   // Unique weeks for filter
@@ -173,6 +192,7 @@ const Payroll = () => {
     e.preventDefault(); setSaving(true);
     const body = {
       employee: form.employee, week_start: form.week_start, week_end: addDays(form.week_start, 6),
+      site: employees.find((employee) => String(employee.id) === form.employee)?.site || editTarget?.site_id || null,
       hourly_rate: form.hourly_rate,
       mon: form.mon, tue: form.tue, wed: form.wed,
       thu: form.thu, fri: form.fri, sat: form.sat, sun: form.sun,
@@ -207,12 +227,17 @@ const Payroll = () => {
     setSaving(true);
     try {
       await Promise.all(rowsToSave.map((row) => {
-        const existing = payrolls.find((payroll) => payroll.employee === row.employee.id && payroll.week_start === weekRange.start);
+        const existing = payrolls.find((payroll) =>
+          payroll.employee === row.employee.id &&
+          payroll.week_start === weekRange.start &&
+          String(payroll.site_id || "") === String(row.employee.site || "")
+        );
         return fetch(existing ? `${API_PAYROLL}${existing.id}/` : API_PAYROLL, {
           method: existing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employee: row.employee.id,
+          site: row.employee.site,
           week_start: weekRange.start,
           week_end: weekRange.end,
           hourly_rate: row.hourly_rate,
@@ -240,12 +265,6 @@ const Payroll = () => {
     setPayrolls(prev => prev.filter(p => p.id !== id));
   };
 
-  // Helper: Get site location by name
-  const getSiteLocation = (siteName: string) => {
-    const site = sites.find(s => s.name === siteName);
-    return site?.location || "No location";
-  };
-
   const totalNet = filtered.reduce((s, p) => s + Number(p.net_pay), 0);
   const totalHours = filtered.reduce((s, p) => s + Number(p.total_hours), 0);
 
@@ -268,6 +287,12 @@ const Payroll = () => {
       </div>
 
       {/* Summary cards */}
+      {loadError && (
+        <div className="rounded-xl px-4 py-3 text-sm" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)", color: "#fca5a5" }}>
+          {loadError}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           { label: "Total Records", value: filtered.length, color: "#ff7f50" },
@@ -311,15 +336,15 @@ const Payroll = () => {
         </div>
       ) : (
         <div className="space-y-5">
-          {Object.entries(grouped).map(([siteId, records]) => {
+          {Object.entries(grouped).map(([siteKey, records]) => {
             const siteNet = records.reduce((s, r) => s + Number(r.net_pay), 0);
-            const isCollapsed = collapsed[siteId];
+            const isCollapsed = collapsed[siteKey];
             const siteName = records[0]?.site_name || "Unassigned";
             const siteLocation = records[0]?.site_location || "No location";
             return (
-              <div key={siteId} className="rounded-2xl overflow-hidden" style={card}>
+              <div key={siteKey} className="rounded-2xl overflow-hidden" style={card}>
                 {/* Site header */}
-                <button onClick={() => setCollapsed(p => ({ ...p, [siteId]: !p[siteId] }))}
+                <button onClick={() => setCollapsed(p => ({ ...p, [siteKey]: !p[siteKey] }))}
                   className="flex w-full items-center justify-between px-5 py-3.5 transition-colors hover:bg-white/5"
                   style={{ background: "#1e2535" }}>
                   <div className="flex items-center gap-3 flex-wrap">
@@ -351,7 +376,7 @@ const Payroll = () => {
                             <td className="px-3 py-3">
                               <p className="text-sm font-medium text-white whitespace-nowrap">{r.employee_name}</p>
                               <p className="text-xs" style={{ color: "#64748b" }}>
-                                {r.employee_id ? `${r.employee_id} - ` : ""}{r.employee_position}
+                                {getPayrollEmployeeIdLabel(r)} - {r.employee_position}
                               </p>
                             </td>
                             <td className="px-3 py-3 text-xs whitespace-nowrap" style={{ color: "#94a3b8" }}>{r.week_start}</td>
@@ -453,7 +478,7 @@ const Payroll = () => {
                             <tr key={row.employee.id} style={{ borderTop: "1px solid #1e2535" }}>
                               <td className="px-3 py-3">
                                 <p className="text-sm font-semibold text-white">{row.employee.full_name || row.employee.name}</p>
-                                {row.employee.employee_id && <p className="text-xs" style={{ color: "#64748b" }}>{row.employee.employee_id}</p>}
+                                <p className="text-xs" style={{ color: "#64748b" }}>{getEmployeeIdLabel(row.employee)}</p>
                               </td>
                               <td className="px-3 py-3 text-sm" style={{ color: "#94a3b8" }}>{row.employee.position}</td>
                               <td className="px-2 py-3">
@@ -506,7 +531,7 @@ const Payroll = () => {
                     className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
                     style={{ background: "#0f1117", border: "1px solid #1e2535" }}>
                     <option value="">Select employee</option>
-                    {employees.map(e => <option key={e.id} value={e.id}>{e.employee_id ? `${e.employee_id} - ` : ""}{e.name} - {e.site_name || "Unassigned"}</option>)}
+                    {employees.map(e => <option key={e.id} value={e.id}>{getEmployeeIdLabel(e)} - {e.name} - {e.site_name || "Unassigned"}</option>)}
                   </select>
                 </div>
                 <div>
@@ -612,7 +637,7 @@ const Payroll = () => {
             <div className="rounded-xl p-3 mb-4" style={{ background: "#0f1117" }}>
               <p className="font-semibold text-white">{payslip.employee_name}</p>
               <p className="text-xs" style={{ color: "#64748b" }}>
-                {payslip.employee_id ? `${payslip.employee_id} - ` : ""}{payslip.employee_position} - {payslip.site_name}
+                {getPayrollEmployeeIdLabel(payslip)} - {payslip.employee_position} - {payslip.site_name}
               </p>
               <p className="text-xs mt-1" style={{ color: "#475569" }}>Week of {payslip.week_start}</p>
             </div>
